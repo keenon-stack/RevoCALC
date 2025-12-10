@@ -52,6 +52,8 @@ const presets = {
   aggressive: { preReturn: "18", postReturn: "12", inflation: "5" },
 };
 
+const TFSA_MONTHLY_CAP = 3000;
+
 const defaultFormValues = {
   currentAge: "30",
   retireAge: "65",
@@ -125,6 +127,9 @@ const useCalculatorForm = () => {
     const nonNegative = (value) =>
       Number.isFinite(value) && value >= 0 ? value : 0;
 
+    const cappedNonNegative = (value, cap) =>
+      Math.min(nonNegative(value), cap);
+
     const positive = (value) => (Number.isFinite(value) && value > 0 ? value : 0);
 
     return {
@@ -141,7 +146,7 @@ const useCalculatorForm = () => {
       annualIncrease: nonNegative(numericValues.annualIncrease),
       grossIncome: nonNegative(numericValues.grossIncome),
       incomeGrowthRate: nonNegative(numericValues.incomeGrowthRate),
-      tfsaMonthly: nonNegative(numericValues.tfsaMonthly),
+      tfsaMonthly: cappedNonNegative(numericValues.tfsaMonthly, TFSA_MONTHLY_CAP),
       flatTaxRate: nonNegative(numericValues.flatTaxRate),
     };
   }, [numericValues]);
@@ -185,7 +190,11 @@ const useCalculatorForm = () => {
     if (values.incomeGrowthMode === "CUSTOM") {
       validateNumber("incomeGrowthRate", "Income growth rate");
     }
-    validateNumber("tfsaMonthly", "TFSA contribution");
+    const tfsaValid = validateNumber("tfsaMonthly", "TFSA contribution");
+    if (tfsaValid && numericValues.tfsaMonthly > TFSA_MONTHLY_CAP) {
+      nextErrors.tfsaMonthly =
+        "TFSA contribution is capped at R3,000 per month (R36,000 p.a.).";
+    }
     validateNumber("flatTaxRate", "Flat tax rate");
 
     if (currentValid && retireValid && numericValues.currentAge >= numericValues.retireAge) {
