@@ -142,4 +142,84 @@ describe("useRetirementProjection domain calculations", () => {
     expect(year0.tfsaEnd).toBeCloseTo(5_000, 6);
     expect(year0.raEnd).toBeCloseTo(4_600, 6);
   });
+
+  it("shrinks balances when pre-retirement returns are negative", () => {
+    const params = {
+      ...baseParams,
+      retireAge: 31,
+      lifeExpectancy: 40,
+      initialCapital: 10_000,
+      preReturn: -12,
+    };
+
+    const { result } = renderHook(() => useRetirementProjection(params));
+
+    const preTimeline = result.current.preTimeline || [];
+    expect(preTimeline).toHaveLength(1);
+    const year0 = preTimeline[0];
+
+    // With no contributions, a -12% annual return should reduce the balance
+    // by roughly 12% over the first year of compounding.
+    expect(year0.raStart).toBeCloseTo(10_000, 2);
+    expect(year0.raEnd).toBeCloseTo(8_800, 0);
+  });
+
+  it("indexes SARS tax brackets when tax realism is enabled", () => {
+    const commonParams = {
+      ...baseParams,
+      currentAge: 40,
+      retireAge: 45,
+      lifeExpectancy: 50,
+      initialCapital: 300_000,
+      targetNetToday: 10_000,
+      grossIncome: 600_000,
+      preReturn: 0,
+      postReturn: 0,
+      inflation: 6,
+      taxMode: "SARS",
+    };
+
+    const { result: staticTax } = renderHook(() =>
+      useRetirementProjection({ ...commonParams, taxRealism: false })
+    );
+
+    const { result: indexedTax } = renderHook(() =>
+      useRetirementProjection({ ...commonParams, taxRealism: true })
+    );
+
+    expect(indexedTax.current.year1Tax).toBeLessThan(
+      staticTax.current.year1Tax
+    );
+  });
+
+  it("respects TFSA-first depletion order to minimize withdrawal tax", () => {
+    const commonParams = {
+      ...baseParams,
+      currentAge: 65,
+      retireAge: 65,
+      lifeExpectancy: 66,
+      initialCapital: 200_000,
+      initialTfsaBalance: 50_000,
+      targetNetToday: 5_000,
+      preReturn: 0,
+      postReturn: 0,
+      taxMode: "FLAT",
+      flatTaxRate: 30,
+    };
+
+    const { result: raFirst } = renderHook(() =>
+      useRetirementProjection({ ...commonParams, depleteOrder: "RA_FIRST" })
+    );
+
+    const { result: tfsaFirst } = renderHook(() =>
+      useRetirementProjection({ ...commonParams, depleteOrder: "TFSA_FIRST" })
+    );
+
+    expect(tfsaFirst.current.year1Tax).toBeLessThan(
+      raFirst.current.year1Tax
+    );
+    expect(tfsaFirst.current.year1GrossWithdrawal).toBeLessThan(
+      raFirst.current.year1GrossWithdrawal
+    );
+  });
 });
