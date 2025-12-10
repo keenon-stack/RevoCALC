@@ -227,7 +227,7 @@ function accumulateToRetirement(inputs) {
       tfsaStart,
       raEnd: ra,
       tfsaEnd: tfsa,
-      totalContribution: yearContributionMonthly * 12,
+      totalContribution: raAnnual + tfsaAnnual,
       raContribution: raAnnual,
       tfsaContribution: tfsaAnnual,
       raTaxSaving: raTaxSavingYear,
