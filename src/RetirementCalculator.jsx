@@ -576,12 +576,7 @@ const RetirementCalculator = () => {
 
   const exportPdf = () => {
     const html = buildHtmlForExport(getCapitalChartDataUrl());
-    const printWindow = window.open("", "_blank", "noopener,noreferrer");
-    if (!printWindow) {
-      return;
-    }
-    printWindow.document.open();
-    printWindow.document.write(`
+    const printableHtml = `
       <html>
         <head>
           <title>Revo Capital export</title>
@@ -595,15 +590,40 @@ const RetirementCalculator = () => {
         </head>
         <body>${html}</body>
       </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.onload = () => {
-      printWindow.print();
-      printWindow.onafterprint = () => {
-        printWindow.close();
-      };
+    `;
+
+    const blob = new Blob([printableHtml], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.src = url;
+
+    const cleanup = () => {
+      if (iframe.parentNode) {
+        iframe.parentNode.removeChild(iframe);
+      }
+      URL.revokeObjectURL(url);
     };
+
+    iframe.onload = () => {
+      const frameWindow = iframe.contentWindow;
+      if (!frameWindow) {
+        cleanup();
+        return;
+      }
+      frameWindow.focus();
+      frameWindow.print();
+      frameWindow.onafterprint = cleanup;
+      // extra cleanup in case onafterprint never fires
+      setTimeout(cleanup, 1000);
+    };
+
+    document.body.appendChild(iframe);
   };
 
   const renderCapitalChart = (showPlaceholder = true) => {
