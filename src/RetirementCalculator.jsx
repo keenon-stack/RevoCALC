@@ -10,6 +10,7 @@ import {
   Legend,
   ReferenceLine,
 } from "recharts";
+import { uiClasses } from "./uiTheme";
 import { useRetirementProjection } from "./useRetirementProjection";
 
 // --- formatting helpers (UI only) ---
@@ -29,21 +30,18 @@ const formatPercent = (value) => {
   return (value * 100).toFixed(2) + "%";
 };
 
-// --- shared UI classes ---
-const pageClasses =
-  'min-h-screen bg-[#bedcbe] p-6 text-[#003c32] font-["ES_Klarheit_Grotesk",-apple-system,BlinkMacSystemFont,"Segoe_UI",system-ui,sans-serif]';
-const cardClasses = "space-y-3 rounded-2xl bg-[#003c32] p-4 text-white shadow-md";
-const inputClasses =
-  "bg-[#003c32] border border-white text-white rounded-xl px-3 py-2 outline-none font-bold focus:ring-2 focus:ring-[#9ad0b0]";
-const labelTextClasses = "text-sm font-extralight text-[#bedcbe]";
-const headerTitleClasses = "text-3xl font-bold text-[#003c32]";
-const sectionTitleClasses = "mb-2 text-xl font-semibold text-[#bedcbe]";
-const keyMetricLabelClasses = "text-xs text-[#bedcbe]";
-const keyMetricValueClasses = "text-lg font-bold text-white";
-const tabButtonBaseClasses =
-  "flex-1 rounded-full border border-white px-3 py-2 text-sm font-semibold transition-colors";
-const tableHeaderCellClasses =
-  "sticky top-0 z-10 bg-[#002820] px-2 py-1 text-left text-[11px] font-bold text-white";
+const {
+  page: pageClasses,
+  card: cardClasses,
+  input: inputClasses,
+  labelText: labelTextClasses,
+  headerTitle: headerTitleClasses,
+  sectionTitle: sectionTitleClasses,
+  keyMetricLabel: keyMetricLabelClasses,
+  keyMetricValue: keyMetricValueClasses,
+  tabButtonBase: tabButtonBaseClasses,
+  tableHeaderCell: tableHeaderCellClasses,
+} = uiClasses;
 
 // Scenario presets for convenience
 const presets = {
