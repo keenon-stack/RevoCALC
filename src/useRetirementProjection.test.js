@@ -1,0 +1,143 @@
+import { renderHook } from "@testing-library/react";
+import { useRetirementProjection } from "./useRetirementProjection";
+
+const calculateSarsTax = (income, age) => {
+  if (income <= 0) return 0;
+  const brackets = [
+    { limit: 237_100, base: 0, rate: 0.18 },
+    { limit: 370_500, base: 42_678, rate: 0.26 },
+    { limit: 512_800, base: 77_362, rate: 0.31 },
+    { limit: 673_000, base: 121_475, rate: 0.36 },
+    { limit: 857_900, base: 179_147, rate: 0.39 },
+    { limit: 1_817_000, base: 251_258, rate: 0.41 },
+    { limit: Infinity, base: 644_489, rate: 0.45 },
+  ];
+
+  let tax = 0;
+  for (let i = 0; i < brackets.length; i++) {
+    const bracket = brackets[i];
+    if (income <= bracket.limit) {
+      if (bracket.base === 0 || i === 0) {
+        tax = income * bracket.rate;
+      } else {
+        const prevLimit = brackets[i - 1].limit;
+        tax = bracket.base + (income - prevLimit) * bracket.rate;
+      }
+      break;
+    }
+  }
+
+  let rebate = 17_235;
+  if (age >= 65) rebate += 9_444;
+  if (age >= 75) rebate += 3_145;
+  return Math.max(0, tax - rebate);
+};
+
+const grossFromNet = (netTarget, age) => {
+  let low = netTarget;
+  let high = netTarget / (1 - 0.45);
+  for (let i = 0; i < 40; i++) {
+    const mid = (low + high) / 2;
+    const tax = calculateSarsTax(mid, age);
+    const net = mid - tax;
+    if (net >= netTarget) {
+      high = mid;
+    } else {
+      low = mid;
+    }
+  }
+  const gross = high;
+  const tax = calculateSarsTax(gross, age);
+  const net = gross - tax;
+  return { gross, tax, net };
+};
+
+const baseParams = {
+  currentAge: 30,
+  retireAge: 60,
+  lifeExpectancy: 90,
+  initialCapital: 0,
+  initialTfsaBalance: 0,
+  tfsaContribToDate: 0,
+  targetNetToday: 0,
+  preReturn: 0,
+  postReturn: 0,
+  inflation: 0,
+  annualIncrease: 0,
+  tfsaMonthly: 0,
+  grossIncome: 0,
+  incomeGrowthMode: "NONE",
+  incomeGrowthRate: 0,
+  depleteOrder: "RA_FIRST",
+  taxMode: "SARS",
+  flatTaxRate: 25,
+  reinvestRaTaxSaving: false,
+  taxRealism: false,
+};
+
+describe("useRetirementProjection domain calculations", () => {
+  it("uses SARS brackets and rebates to calculate tax saving", () => {
+    const grossIncome = 500_000;
+    const params = {
+      ...baseParams,
+      grossIncome,
+    };
+
+    const { result } = renderHook(() => useRetirementProjection(params));
+
+    const taxNow = calculateSarsTax(grossIncome, params.currentAge);
+    const raCap = Math.min(0.275 * grossIncome, 350_000);
+    const taxWithRa = calculateSarsTax(grossIncome - raCap, params.currentAge);
+    const expectedSaving = taxNow - taxWithRa;
+
+    expect(result.current.taxSaving).toBeCloseTo(expectedSaving, 2);
+    expect(result.current.effectiveTaxRateNow).toBeCloseTo(
+      taxNow / grossIncome,
+      4
+    );
+  });
+
+  it("derives gross withdrawals from net targets using SARS tax", () => {
+    const params = {
+      ...baseParams,
+      currentAge: 65,
+      retireAge: 65,
+      lifeExpectancy: 66,
+      initialCapital: 100_000,
+      targetNetToday: 6_000,
+    };
+
+    const { result } = renderHook(() => useRetirementProjection(params));
+
+    const netAnnual = 6_000 * 12;
+    const { gross, tax, net } = grossFromNet(netAnnual, params.retireAge);
+
+    expect(result.current.year1NetWithdrawal).toBeCloseTo(net, 2);
+    expect(result.current.year1GrossWithdrawal).toBeCloseTo(gross, 2);
+    expect(result.current.year1Tax).toBeCloseTo(tax, 2);
+  });
+
+  it("caps TFSA contributions and rolls overflow into RA contributions", () => {
+    const params = {
+      ...baseParams,
+      retireAge: 31,
+      lifeExpectancy: 40,
+      preReturn: 0,
+      tfsaMonthly: 800,
+      contributionMonthly: 1_000,
+      tfsaContribToDate: 495_000,
+    };
+
+    const { result } = renderHook(() => useRetirementProjection(params));
+
+    const preTimeline = result.current.preTimeline || [];
+    expect(preTimeline).toHaveLength(1);
+    const year0 = preTimeline[0];
+
+    expect(year0.tfsaContribution).toBe(5_000);
+    expect(year0.raContribution).toBe(7_000);
+    expect(year0.totalContribution).toBe(12_000);
+    expect(year0.tfsaEnd).toBeCloseTo(5_000, 6);
+    expect(year0.raEnd).toBeCloseTo(7_000, 6);
+  });
+});
