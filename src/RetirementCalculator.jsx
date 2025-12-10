@@ -164,6 +164,8 @@ const RetirementCalculator = () => {
 
   const [showAdvancedTax, setShowAdvancedTax] = useState(false);
 
+  const [exportFormat, setExportFormat] = useState("pdf");
+
   // bottom section: 3 tabs: "CAPITAL", "PRE", "POST"
   const [activeProjectionTab, setActiveProjectionTab] =
     useState("CAPITAL");
@@ -229,24 +231,239 @@ const RetirementCalculator = () => {
   const raUsagePct =
     outputs.maxRaContrib > 0
       ? (outputs.requiredMonthlyContribution * 12) /
-        outputs.maxRaContrib
+          outputs.maxRaContrib
       : 0;
+
+  const hasExportData =
+    (outputs.preTimeline || []).length > 0 ||
+    (outputs.postTimeline || []).length > 0;
+
+  const preExportColumns = [
+    { key: "age", label: "Age" },
+    { key: "totalContribution", label: "Total contribution", formatter: formatCurrency },
+    { key: "raContribution", label: "RA contribution", formatter: formatCurrency },
+    { key: "tfsaContribution", label: "TFSA contribution", formatter: formatCurrency },
+    { key: "raStart", label: "RA start", formatter: formatCurrency },
+    { key: "tfsaStart", label: "TFSA start", formatter: formatCurrency },
+    { key: "raEnd", label: "RA end", formatter: formatCurrency },
+    { key: "tfsaEnd", label: "TFSA end", formatter: formatCurrency },
+    { key: "raTaxSaving", label: "RA tax saving", formatter: formatCurrency },
+  ];
+
+  const postExportColumns = [
+    { key: "age", label: "Age" },
+    { key: "netRequired", label: "Net required", formatter: formatCurrency },
+    { key: "netDelivered", label: "Net delivered", formatter: formatCurrency },
+    { key: "grossWithdrawal", label: "Gross withdrawal", formatter: formatCurrency },
+    { key: "taxPaid", label: "Tax paid", formatter: formatCurrency },
+    { key: "raStart", label: "RA start", formatter: formatCurrency },
+    { key: "tfsaStart", label: "TFSA start", formatter: formatCurrency },
+    { key: "raEnd", label: "RA end", formatter: formatCurrency },
+    { key: "tfsaEnd", label: "TFSA end", formatter: formatCurrency },
+  ];
+
+  const buildExportSections = () => {
+    const preRows = (outputs.preTimeline || []).map((row) => ({
+      age: row.age,
+      totalContribution: row.totalContribution,
+      raContribution: row.raContribution,
+      tfsaContribution: row.tfsaContribution,
+      raStart: row.raStart,
+      tfsaStart: row.tfsaStart,
+      raEnd: row.raEnd,
+      tfsaEnd: row.tfsaEnd,
+      raTaxSaving: row.raTaxSaving,
+    }));
+
+    const postRows = (outputs.postTimeline || []).map((row) => ({
+      age: row.age,
+      netRequired: row.netRequired,
+      netDelivered: row.netDelivered,
+      grossWithdrawal: row.grossWithdrawal,
+      taxPaid: row.taxPaid,
+      raStart: row.raStart,
+      tfsaStart: row.tfsaStart,
+      raEnd: row.raEnd,
+      tfsaEnd: row.tfsaEnd,
+    }));
+
+    return [
+      { title: "Pre-retirement timeline", columns: preExportColumns, rows: preRows },
+      { title: "Post-retirement timeline", columns: postExportColumns, rows: postRows },
+    ];
+  };
+
+  const formatExportValue = (col, value) => {
+    if (value === undefined || value === null || Number.isNaN(value)) {
+      return "-";
+    }
+    return col.formatter ? col.formatter(value) : String(value);
+  };
+
+  const downloadBlob = (content, filename, type) => {
+    const blob =
+      content instanceof Blob ? content : new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportCsv = () => {
+    const sections = buildExportSections();
+    const lines = [];
+
+    sections.forEach((section, idx) => {
+      lines.push(section.title);
+      lines.push(section.columns.map((col) => col.label).join(","));
+      section.rows.forEach((row) => {
+        lines.push(
+          section.columns
+            .map((col) => {
+              const value = formatExportValue(col, row[col.key]);
+              if (typeof value === "string" && value.includes(",")) {
+                return `"${value}"`;
+              }
+              return value;
+            })
+            .join(",")
+        );
+      });
+      if (idx !== sections.length - 1) {
+        lines.push("");
+      }
+    });
+
+    downloadBlob(lines.join("\n"), "revo-retirement-export.csv", "text/csv;charset=utf-8;");
+  };
+
+  const buildHtmlForExport = () => {
+    const sections = buildExportSections();
+    const tables = sections
+      .map((section) => {
+        const header = section.columns
+          .map((col) => `<th style="border:1px solid #003c32;padding:6px;">${col.label}</th>`)
+          .join("");
+
+        const rows = section.rows
+          .map((row) => {
+            const cells = section.columns
+              .map((col) => {
+                const value = formatExportValue(col, row[col.key]);
+                return `<td style="border:1px solid #003c32;padding:6px;">${value}</td>`;
+              })
+              .join("");
+            return `<tr>${cells}</tr>`;
+          })
+          .join("");
+
+        return `
+          <section style="margin-bottom:16px;">
+            <h2 style="margin:0 0 8px 0;color:#003c32;">${section.title}</h2>
+            <table style="border-collapse:collapse;width:100%;font-size:12px;">
+              <thead><tr style="background:#e0f0e5;">${header}</tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </section>
+        `;
+      })
+      .join("");
+
+    return `
+      <div style="font-family:Arial, sans-serif;padding:16px;">
+        <h1 style="color:#003c32;">Revo Capital - RA maximisation export</h1>
+        ${tables}
+      </div>
+    `;
+  };
+
+  const exportExcel = () => {
+    const html = buildHtmlForExport();
+    downloadBlob(
+      html,
+      "revo-retirement-export.xls",
+      "application/vnd.ms-excel"
+    );
+  };
+
+  const exportPdf = () => {
+    const html = buildHtmlForExport();
+    const printWindow = window.open("", "_blank", "noopener,noreferrer");
+    if (!printWindow) {
+      return;
+    }
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Revo Capital export</title>
+        </head>
+        <body>${html}</body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
+  const handleExport = (format) => {
+    if (!hasExportData) return;
+    if (format === "pdf") {
+      exportPdf();
+    } else if (format === "csv") {
+      exportCsv();
+    } else if (format === "excel") {
+      exportExcel();
+    }
+  };
 
   return (
     <div className={pageClasses}>
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="flex flex-col gap-3 border-b border-[#003c32] pb-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h1 className={headerTitleClasses}>
-              Revo Capital - RA Maximisation
-            </h1>
-            <button
-              type="button"
-              onClick={reset}
-              className="self-start text-xs font-semibold text-[#003c32] underline"
-            >
-              Reset to defaults
-            </button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-1">
+              <h1 className={headerTitleClasses}>
+                Revo Capital - RA Maximisation
+              </h1>
+              <p className="text-xs font-semibold text-[#003c32]">
+                Export projections to share PDF, CSV, or Excel snapshots.
+              </p>
+            </div>
+            <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-semibold text-[#003c32]">
+                  Export as
+                </label>
+                <select
+                  value={exportFormat}
+                  onChange={(e) => setExportFormat(e.target.value)}
+                  className="rounded-full border border-[#003c32] bg-white px-3 py-2 text-xs font-semibold text-[#003c32] shadow-sm outline-none focus:ring-2 focus:ring-[#9ad0b0]"
+                >
+                  <option value="pdf">PDF</option>
+                  <option value="csv">CSV</option>
+                  <option value="excel">Excel</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => handleExport(exportFormat)}
+                  disabled={!hasExportData}
+                  className="rounded-full bg-[#003c32] px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#005043] disabled:cursor-not-allowed disabled:bg-[#6a837c]"
+                >
+                  Export
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={reset}
+                className="text-xs font-semibold text-[#003c32] underline"
+              >
+                Reset to defaults
+              </button>
+            </div>
           </div>
           <label
             className="inline-flex items-center gap-2 text-sm font-semibold text-[#003c32]"
