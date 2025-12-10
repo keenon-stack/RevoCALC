@@ -1,5 +1,5 @@
 // RetirementCalculator.jsx
-import React, { useEffect, useReducer, useRef, useState } from "react";
+import React, { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
   LineChart,
   Line,
@@ -10,6 +10,7 @@ import {
   Legend,
   ReferenceLine,
 } from "recharts";
+import { uiClasses } from "./uiTheme";
 import { useRetirementProjection } from "./useRetirementProjection";
 
 // --- formatting helpers (UI only) ---
@@ -29,21 +30,18 @@ const formatPercent = (value) => {
   return (value * 100).toFixed(2) + "%";
 };
 
-// --- shared UI classes ---
-const pageClasses =
-  'min-h-screen bg-[#bedcbe] p-6 text-[#003c32] font-["ES_Klarheit_Grotesk",-apple-system,BlinkMacSystemFont,"Segoe_UI",system-ui,sans-serif]';
-const cardClasses = "space-y-3 rounded-2xl bg-[#003c32] p-4 text-white shadow-md";
-const inputClasses =
-  "bg-[#003c32] border border-white text-white rounded-xl px-3 py-2 outline-none font-bold focus:ring-2 focus:ring-[#9ad0b0]";
-const labelTextClasses = "text-sm font-extralight text-[#bedcbe]";
-const headerTitleClasses = "text-3xl font-bold text-[#003c32]";
-const sectionTitleClasses = "mb-2 text-xl font-semibold text-[#bedcbe]";
-const keyMetricLabelClasses = "text-xs text-[#bedcbe]";
-const keyMetricValueClasses = "text-lg font-bold text-white";
-const tabButtonBaseClasses =
-  "flex-1 rounded-full border border-white px-3 py-2 text-sm font-semibold transition-colors";
-const tableHeaderCellClasses =
-  "sticky top-0 z-10 bg-[#002820] px-2 py-1 text-left text-[11px] font-bold text-white";
+const {
+  page: pageClasses,
+  card: cardClasses,
+  input: inputClasses,
+  labelText: labelTextClasses,
+  headerTitle: headerTitleClasses,
+  sectionTitle: sectionTitleClasses,
+  keyMetricLabel: keyMetricLabelClasses,
+  keyMetricValue: keyMetricValueClasses,
+  tabButtonBase: tabButtonBaseClasses,
+  tableHeaderCell: tableHeaderCellClasses,
+} = uiClasses;
 
 // Scenario presets for convenience
 const presets = {
@@ -51,6 +49,8 @@ const presets = {
   conservative: { preReturn: "10", postReturn: "7", inflation: "6" },
   aggressive: { preReturn: "18", postReturn: "12", inflation: "5" },
 };
+
+const TFSA_MONTHLY_CAP = 3000;
 
 const defaultFormValues = {
   currentAge: "30",
@@ -91,19 +91,121 @@ const useCalculatorForm = () => {
 
   const [errors, setErrors] = useState({});
 
+  const numericValues = useMemo(() => {
+    const toNumber = (value) => {
+      if (typeof value === "number") return value;
+      if (typeof value === "string") {
+        const cleaned = value.replace(/,/g, "").trim();
+        if (cleaned === "") return NaN;
+        return Number(cleaned);
+      }
+      return NaN;
+    };
+
+    return {
+      currentAge: toNumber(values.currentAge),
+      retireAge: toNumber(values.retireAge),
+      lifeExpectancy: toNumber(values.lifeExpectancy),
+      initialCapital: toNumber(values.initialCapital),
+      initialTfsaBalance: toNumber(values.initialTfsaBalance),
+      tfsaContribToDate: toNumber(values.tfsaContribToDate),
+      targetNetToday: toNumber(values.targetNetToday),
+      preReturn: toNumber(values.preReturn),
+      postReturn: toNumber(values.postReturn),
+      inflation: toNumber(values.inflation),
+      annualIncrease: toNumber(values.annualIncrease),
+      grossIncome: toNumber(values.grossIncome),
+      incomeGrowthRate: toNumber(values.incomeGrowthRate),
+      tfsaMonthly: toNumber(values.tfsaMonthly),
+      flatTaxRate: toNumber(values.flatTaxRate),
+    };
+  }, [values]);
+
+  const sanitizedNumbers = useMemo(() => {
+    const nonNegative = (value) =>
+      Number.isFinite(value) && value >= 0 ? value : 0;
+
+    const cappedNonNegative = (value, cap) =>
+      Math.min(nonNegative(value), cap);
+
+    const positive = (value) => (Number.isFinite(value) && value > 0 ? value : 0);
+
+    return {
+      currentAge: nonNegative(numericValues.currentAge),
+      retireAge: nonNegative(numericValues.retireAge),
+      lifeExpectancy: positive(numericValues.lifeExpectancy),
+      initialCapital: nonNegative(numericValues.initialCapital),
+      initialTfsaBalance: nonNegative(numericValues.initialTfsaBalance),
+      tfsaContribToDate: nonNegative(numericValues.tfsaContribToDate),
+      targetNetToday: nonNegative(numericValues.targetNetToday),
+      preReturn: nonNegative(numericValues.preReturn),
+      postReturn: nonNegative(numericValues.postReturn),
+      inflation: nonNegative(numericValues.inflation),
+      annualIncrease: nonNegative(numericValues.annualIncrease),
+      grossIncome: nonNegative(numericValues.grossIncome),
+      incomeGrowthRate: nonNegative(numericValues.incomeGrowthRate),
+      tfsaMonthly: cappedNonNegative(numericValues.tfsaMonthly, TFSA_MONTHLY_CAP),
+      flatTaxRate: nonNegative(numericValues.flatTaxRate),
+    };
+  }, [numericValues]);
+
   useEffect(() => {
-    const current = Number(values.currentAge || 0);
-    const retire = Number(values.retireAge || 0);
-    const life = Number(values.lifeExpectancy || 0);
     const nextErrors = {};
 
-    if (current >= retire) {
+    const validateNumber = (field, label, { min = 0, allowZero = true } = {}) => {
+      const value = numericValues[field];
+      if (!Number.isFinite(value)) {
+        nextErrors[field] = `${label} must be a valid number.`;
+        return false;
+      }
+      const minimum = allowZero ? min : Math.max(min, Number.EPSILON);
+      if (value < minimum) {
+        nextErrors[field] =
+          minimum === 0
+            ? `${label} cannot be negative.`
+            : `${label} must be at least ${minimum}.`;
+        return false;
+      }
+      return true;
+    };
+
+    const currentValid = validateNumber("currentAge", "Current age");
+    const retireValid = validateNumber("retireAge", "Retirement age");
+    const lifeValid = validateNumber("lifeExpectancy", "Life expectancy", {
+      min: 1,
+      allowZero: false,
+    });
+
+    validateNumber("initialCapital", "Initial capital");
+    validateNumber("initialTfsaBalance", "Existing TFSA balance");
+    validateNumber("tfsaContribToDate", "TFSA contributions to date");
+    validateNumber("targetNetToday", "Target net income");
+    validateNumber("preReturn", "Pre-retirement return");
+    validateNumber("postReturn", "Post-retirement return");
+    validateNumber("inflation", "Inflation");
+    validateNumber("annualIncrease", "Annual contribution increase");
+    validateNumber("grossIncome", "Gross income");
+    if (values.incomeGrowthMode === "CUSTOM") {
+      validateNumber("incomeGrowthRate", "Income growth rate");
+    }
+    const tfsaValid = validateNumber("tfsaMonthly", "TFSA contribution");
+    if (tfsaValid && numericValues.tfsaMonthly > TFSA_MONTHLY_CAP) {
+      nextErrors.tfsaMonthly =
+        "TFSA contribution is capped at R3,000 per month (R36,000 p.a.).";
+    }
+    validateNumber("flatTaxRate", "Flat tax rate");
+
+    if (currentValid && retireValid && numericValues.currentAge >= numericValues.retireAge) {
       nextErrors.currentAge = "Current age must be less than retirement age.";
       nextErrors.retireAge =
         "Retirement age must be greater than current age.";
     }
 
-    if (retire >= life) {
+    if (
+      retireValid &&
+      lifeValid &&
+      numericValues.retireAge >= numericValues.lifeExpectancy
+    ) {
       nextErrors.retireAge =
         nextErrors.retireAge || "Retirement age must be less than life expectancy.";
       nextErrors.lifeExpectancy =
@@ -111,7 +213,7 @@ const useCalculatorForm = () => {
     }
 
     setErrors(nextErrors);
-  }, [values]);
+  }, [numericValues, values.incomeGrowthMode]);
 
   const handleNumberChange = (field) => (e) =>
     dispatch({ type: "update", field, value: e.target.value });
@@ -125,6 +227,8 @@ const useCalculatorForm = () => {
 
   return {
     values,
+    numericValues,
+    sanitizedNumbers,
     errors,
     handlers: {
       number: handleNumberChange,
@@ -137,7 +241,15 @@ const useCalculatorForm = () => {
 };
 
 const RetirementCalculator = () => {
-  const { values, errors, handlers, reset, applyPreset } = useCalculatorForm();
+  const {
+    values,
+    numericValues,
+    sanitizedNumbers,
+    errors,
+    handlers,
+    reset,
+    applyPreset,
+  } = useCalculatorForm();
 
   const {
     currentAge,
@@ -175,24 +287,24 @@ const RetirementCalculator = () => {
   // --- calculations via hook (all maths lives in useRetirementProjection) ---
 
   const outputs = useRetirementProjection({
-    currentAge,
-    retireAge,
-    lifeExpectancy,
-    initialCapital,
-    initialTfsaBalance,
-    tfsaContribToDate,
-    targetNetToday,
-    preReturn,
-    postReturn,
-    inflation,
-    annualIncrease,
-    tfsaMonthly,
-    grossIncome,
+    currentAge: sanitizedNumbers.currentAge,
+    retireAge: sanitizedNumbers.retireAge,
+    lifeExpectancy: sanitizedNumbers.lifeExpectancy,
+    initialCapital: sanitizedNumbers.initialCapital,
+    initialTfsaBalance: sanitizedNumbers.initialTfsaBalance,
+    tfsaContribToDate: sanitizedNumbers.tfsaContribToDate,
+    targetNetToday: sanitizedNumbers.targetNetToday,
+    preReturn: sanitizedNumbers.preReturn,
+    postReturn: sanitizedNumbers.postReturn,
+    inflation: sanitizedNumbers.inflation,
+    annualIncrease: sanitizedNumbers.annualIncrease,
+    tfsaMonthly: sanitizedNumbers.tfsaMonthly,
+    grossIncome: sanitizedNumbers.grossIncome,
     incomeGrowthMode,
-    incomeGrowthRate,
+    incomeGrowthRate: sanitizedNumbers.incomeGrowthRate,
     depleteOrder,
     taxMode,
-    flatTaxRate,
+    flatTaxRate: sanitizedNumbers.flatTaxRate,
     reinvestRaTaxSaving,
     taxRealism,
   });
@@ -896,6 +1008,11 @@ const RetirementCalculator = () => {
                   type="number"
                   min={0}
                 />
+                {errors.initialCapital && (
+                  <p className="text-[11px] text-[#ffb3b3]">
+                    {errors.initialCapital}
+                  </p>
+                )}
               </label>
               <label
                 className="flex flex-col gap-1"
@@ -912,6 +1029,11 @@ const RetirementCalculator = () => {
                   type="number"
                   min={0}
                 />
+                {errors.tfsaContribToDate && (
+                  <p className="text-[11px] text-[#ffb3b3]">
+                    {errors.tfsaContribToDate}
+                  </p>
+                )}
               </label>
               <label
                 className="flex flex-col gap-1"
@@ -928,6 +1050,11 @@ const RetirementCalculator = () => {
                   type="number"
                   min={0}
                 />
+                {errors.initialTfsaBalance && (
+                  <p className="text-[11px] text-[#ffb3b3]">
+                    {errors.initialTfsaBalance}
+                  </p>
+                )}
               </label>
 
               <p className="col-span-2 mt-2 text-sm font-semibold uppercase tracking-wide text-[#9ad0b0]">
@@ -943,16 +1070,21 @@ const RetirementCalculator = () => {
                 <div className="flex items-center gap-2">
                   <input
                     id="target-net"
-                    className={`${inputClasses} flex-1`}
-                    value={targetNetToday}
-                    onChange={handlers.number("targetNetToday")}
-                    type="number"
-                    min={0}
-                  />
+                  className={`${inputClasses} flex-1`}
+                  value={targetNetToday}
+                  onChange={handlers.number("targetNetToday")}
+                  type="number"
+                  min={0}
+                />
                   <span className="text-xs text-[#bedcbe]">
                     R / month
                   </span>
                 </div>
+                {errors.targetNetToday && (
+                  <p className="text-[11px] text-[#ffb3b3]">
+                    {errors.targetNetToday}
+                  </p>
+                )}
               </label>
 
               {/* Scenario preset */}
@@ -999,6 +1131,11 @@ const RetirementCalculator = () => {
                     % p.a.
                   </span>
                 </div>
+                {errors.preReturn && (
+                  <p className="text-[11px] text-[#ffb3b3]">
+                    {errors.preReturn}
+                  </p>
+                )}
               </label>
               <label
                 className="flex flex-col gap-1"
@@ -1021,6 +1158,11 @@ const RetirementCalculator = () => {
                     % p.a.
                   </span>
                 </div>
+                {errors.postReturn && (
+                  <p className="text-[11px] text-[#ffb3b3]">
+                    {errors.postReturn}
+                  </p>
+                )}
               </label>
               <label
                 className="flex flex-col gap-1"
@@ -1041,6 +1183,11 @@ const RetirementCalculator = () => {
                     % p.a.
                   </span>
                 </div>
+                {errors.inflation && (
+                  <p className="text-[11px] text-[#ffb3b3]">
+                    {errors.inflation}
+                  </p>
+                )}
               </label>
               <label
                 className="flex flex-col gap-1"
@@ -1063,6 +1210,11 @@ const RetirementCalculator = () => {
                     % p.a.
                   </span>
                 </div>
+                {errors.annualIncrease && (
+                  <p className="text-[11px] text-[#ffb3b3]">
+                    {errors.annualIncrease}
+                  </p>
+                )}
               </label>
             </div>
 
@@ -1092,6 +1244,11 @@ const RetirementCalculator = () => {
                     R p.a.
                   </span>
                 </div>
+                {errors.grossIncome && (
+                  <p className="text-[11px] text-[#ffb3b3]">
+                    {errors.grossIncome}
+                  </p>
+                )}
               </label>
               <label
                 className="flex flex-col gap-1"
@@ -1113,6 +1270,11 @@ const RetirementCalculator = () => {
                     R / month
                   </span>
                 </div>
+                {errors.tfsaMonthly && (
+                  <p className="text-[11px] text-[#ffb3b3]">
+                    {errors.tfsaMonthly}
+                  </p>
+                )}
               </label>
               <label className="flex flex-col gap-1">
                 <span className={labelTextClasses}>
@@ -1153,6 +1315,11 @@ const RetirementCalculator = () => {
                       % p.a.
                     </span>
                   </div>
+                  {errors.incomeGrowthRate && (
+                    <p className="text-[11px] text-[#ffb3b3]">
+                      {errors.incomeGrowthRate}
+                    </p>
+                  )}
                 </label>
               )}
             </div>
@@ -1212,6 +1379,11 @@ const RetirementCalculator = () => {
                         %
                       </span>
                     </div>
+                    {errors.flatTaxRate && (
+                      <p className="text-[11px] text-[#ffb3b3]">
+                        {errors.flatTaxRate}
+                      </p>
+                    )}
                   </label>
                 )}
                 <label className="col-span-2 flex flex-col gap-1">
