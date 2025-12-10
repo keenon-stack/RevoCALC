@@ -29,93 +29,21 @@ const formatPercent = (value) => {
   return (value * 100).toFixed(2) + "%";
 };
 
-// --- UI style helpers ---
-
-const pageStyle = {
-  minHeight: "100vh",
-  backgroundColor: "#bedcbe",
-  color: "#003c32",
-  fontFamily:
-    '"ES Klarheit Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
-  padding: "24px",
-};
-
-const cardStyle = {
-  backgroundColor: "#003c32",
-  color: "#ffffff",
-  borderRadius: "16px",
-  padding: "16px",
-  boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-};
-
-const inputStyle = {
-  backgroundColor: "#003c32",
-  border: "1px solid #ffffff",
-  color: "#ffffff",
-  borderRadius: "12px",
-  padding: "8px 12px",
-  outline: "none",
-  fontWeight: 700,
-};
-
-const labelTextStyle = {
-  fontSize: "14px",
-  fontWeight: 200,
-  color: "#bedcbe",
-};
-
-const headerTitleStyle = {
-  fontSize: "32px", // increased
-  fontWeight: 700,
-  color: "#003c32",
-};
-
-const sectionTitleStyle = {
-  fontSize: "22px", // increased
-  fontWeight: 600,
-  marginBottom: "8px",
-  color: "#bedcbe",
-};
-
-const keyMetricLabelStyle = {
-  fontSize: "12px",
-  color: "#bedcbe",
-};
-
-const keyMetricValueStyle = {
-  fontSize: "18px",
-  fontWeight: 700,
-  color: "#ffffff",
-};
-
-const tabButtonStyle = {
-  flex: 1,
-  padding: "8px 12px",
-  borderRadius: "9999px",
-  border: "1px solid #ffffff",
-  backgroundColor: "transparent",
-  color: "#ffffff",
-  cursor: "pointer",
-  fontWeight: 600,
-  fontSize: "14px",
-};
-
-const activeTabButtonStyle = {
-  ...tabButtonStyle,
-  backgroundColor: "#bedcbe",
-  color: "#003c32",
-};
-
-const tableHeaderCellStyleBase = {
-  padding: "6px 8px",
-  fontSize: "11px",
-  fontWeight: 700,
-  backgroundColor: "#002820",
-  color: "#ffffff",
-  position: "sticky",
-  top: 0,
-  zIndex: 1,
-};
+// --- shared UI classes ---
+const pageClasses =
+  'min-h-screen bg-[#bedcbe] p-6 text-[#003c32] font-["ES_Klarheit_Grotesk",-apple-system,BlinkMacSystemFont,"Segoe_UI",system-ui,sans-serif]';
+const cardClasses = "space-y-3 rounded-2xl bg-[#003c32] p-4 text-white shadow-md";
+const inputClasses =
+  "bg-[#003c32] border border-white text-white rounded-xl px-3 py-2 outline-none font-bold focus:ring-2 focus:ring-[#9ad0b0]";
+const labelTextClasses = "text-sm font-extralight text-[#bedcbe]";
+const headerTitleClasses = "text-3xl font-bold text-[#003c32]";
+const sectionTitleClasses = "mb-2 text-xl font-semibold text-[#bedcbe]";
+const keyMetricLabelClasses = "text-xs text-[#bedcbe]";
+const keyMetricValueClasses = "text-lg font-bold text-white";
+const tabButtonBaseClasses =
+  "flex-1 rounded-full border border-white px-3 py-2 text-sm font-semibold transition-colors";
+const tableHeaderCellClasses =
+  "sticky top-0 z-10 bg-[#002820] px-2 py-1 text-left text-[11px] font-bold text-white";
 
 // Scenario presets for convenience
 const presets = {
@@ -250,30 +178,27 @@ const RetirementCalculator = () => {
     Number(retireAge || 0) >= Number(lifeExpectancy || 0);
 
   return (
-    <div style={pageStyle}>
+    <div className={pageClasses}>
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="flex flex-col gap-3 border-b border-[#003c32] pb-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h1 style={headerTitleStyle}>
+            <h1 className={headerTitleClasses}>
               Revo Capital - RA Maximisation
             </h1>
             <button
               type="button"
               onClick={resetDefaults}
-              className="self-start text-xs underline"
-              style={{ color: "#003c32" }}
+              className="self-start text-xs font-semibold text-[#003c32] underline"
             >
               Reset to defaults
             </button>
           </div>
           <label
-            className="inline-flex items-center gap-2 text-sm"
-            style={{ color: "#003c32", fontWeight: 600 }}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[#003c32]"
           >
             <input
               type="checkbox"
-              className="h-4 w-4 rounded"
-              style={{ borderColor: "#003c32" }}
+              className="h-4 w-4 rounded border-[#003c32] text-[#003c32] focus:ring-[#003c32]"
               checked={reinvestRaTaxSaving}
               onChange={(e) =>
                 setReinvestRaTaxSaving(e.target.checked)
@@ -287,8 +212,8 @@ const RetirementCalculator = () => {
 
         <div className="grid gap-6 md:grid-cols-2">
           {/* LEFT CARD: Inputs */}
-          <section style={cardStyle}>
-            <h2 style={sectionTitleStyle}>
+          <section className={cardClasses}>
+            <h2 className={sectionTitleClasses}>
               Client profile &amp; targets
             </h2>
             <div className="grid grid-cols-2 gap-3 text-sm">
@@ -299,10 +224,10 @@ const RetirementCalculator = () => {
                 className="flex flex-col gap-1"
                 htmlFor="current-age"
               >
-                <span style={labelTextStyle}>Current age</span>
+                <span className={labelTextClasses}>Current age</span>
                 <input
                   id="current-age"
-                  style={inputStyle}
+                  className={inputClasses}
                   value={currentAge}
                   onChange={(e) =>
                     setCurrentAge(e.target.value)
@@ -315,10 +240,10 @@ const RetirementCalculator = () => {
                 className="flex flex-col gap-1"
                 htmlFor="retire-age"
               >
-                <span style={labelTextStyle}>Retirement age</span>
+                <span className={labelTextClasses}>Retirement age</span>
                 <input
                   id="retire-age"
-                  style={inputStyle}
+                  className={inputClasses}
                   value={retireAge}
                   onChange={(e) =>
                     setRetireAge(e.target.value)
@@ -331,12 +256,12 @@ const RetirementCalculator = () => {
                 className="flex flex-col gap-1"
                 htmlFor="life-exp"
               >
-                <span style={labelTextStyle}>
+                <span className={labelTextClasses}>
                   Life expectancy age
                 </span>
                 <input
                   id="life-exp"
-                  style={inputStyle}
+                  className={inputClasses}
                   value={lifeExpectancy}
                   onChange={(e) =>
                     setLifeExpectancy(e.target.value)
@@ -360,12 +285,12 @@ const RetirementCalculator = () => {
                 className="flex flex-col gap-1"
                 htmlFor="initial-cap"
               >
-                <span style={labelTextStyle}>
+                <span className={labelTextClasses}>
                   Initial capital (today, taxable/RA)
                 </span>
                 <input
                   id="initial-cap"
-                  style={inputStyle}
+                  className={inputClasses}
                   value={initialCapital}
                   onChange={(e) =>
                     setInitialCapital(e.target.value)
@@ -378,12 +303,12 @@ const RetirementCalculator = () => {
                 className="flex flex-col gap-1"
                 htmlFor="tfsa-to-date"
               >
-                <span style={labelTextStyle}>
+                <span className={labelTextClasses}>
                   TFSA contributions to date (lifetime)
                 </span>
                 <input
                   id="tfsa-to-date"
-                  style={inputStyle}
+                  className={inputClasses}
                   value={tfsaContribToDate}
                   onChange={(e) =>
                     setTfsaContribToDate(e.target.value)
@@ -396,12 +321,12 @@ const RetirementCalculator = () => {
                 className="flex flex-col gap-1"
                 htmlFor="existing-tfsa"
               >
-                <span style={labelTextStyle}>
+                <span className={labelTextClasses}>
                   Existing TFSA balance
                 </span>
                 <input
                   id="existing-tfsa"
-                  style={inputStyle}
+                  className={inputClasses}
                   value={initialTfsaBalance}
                   onChange={(e) =>
                     setInitialTfsaBalance(e.target.value)
@@ -418,13 +343,13 @@ const RetirementCalculator = () => {
                 className="col-span-2 flex flex-col gap-1"
                 htmlFor="target-net"
               >
-                <span style={labelTextStyle}>
+                <span className={labelTextClasses}>
                   Target net income (today, per month)
                 </span>
                 <div className="flex items-center gap-2">
                   <input
                     id="target-net"
-                    style={{ ...inputStyle, flex: 1 }}
+                    className={`${inputClasses} flex-1`}
                     value={targetNetToday}
                     onChange={(e) =>
                       setTargetNetToday(e.target.value)
@@ -440,11 +365,11 @@ const RetirementCalculator = () => {
 
               {/* Scenario preset */}
               <label className="col-span-2 flex flex-col gap-1">
-                <span style={labelTextStyle}>
+                <span className={labelTextClasses}>
                   Scenario preset (optional)
                 </span>
                 <select
-                  style={inputStyle}
+                  className={inputClasses}
                   defaultValue=""
                   onChange={(e) => {
                     const p = presets[e.target.value];
@@ -467,13 +392,13 @@ const RetirementCalculator = () => {
                 className="flex flex-col gap-1"
                 htmlFor="pre-return"
               >
-                <span style={labelTextStyle}>
+                <span className={labelTextClasses}>
                   Pre-retirement return
                 </span>
                 <div className="flex items-center gap-2">
                   <input
                     id="pre-return"
-                    style={{ ...inputStyle, flex: 1 }}
+                    className={`${inputClasses} flex-1`}
                     value={preReturn}
                     onChange={(e) =>
                       setPreReturn(e.target.value)
@@ -491,13 +416,13 @@ const RetirementCalculator = () => {
                 className="flex flex-col gap-1"
                 htmlFor="post-return"
               >
-                <span style={labelTextStyle}>
+                <span className={labelTextClasses}>
                   Post-retirement return
                 </span>
                 <div className="flex items-center gap-2">
                   <input
                     id="post-return"
-                    style={{ ...inputStyle, flex: 1 }}
+                    className={`${inputClasses} flex-1`}
                     value={postReturn}
                     onChange={(e) =>
                       setPostReturn(e.target.value)
@@ -515,11 +440,11 @@ const RetirementCalculator = () => {
                 className="flex flex-col gap-1"
                 htmlFor="inflation"
               >
-                <span style={labelTextStyle}>Inflation</span>
+                <span className={labelTextClasses}>Inflation</span>
                 <div className="flex items-center gap-2">
                   <input
                     id="inflation"
-                    style={{ ...inputStyle, flex: 1 }}
+                    className={`${inputClasses} flex-1`}
                     value={inflation}
                     onChange={(e) =>
                       setInflation(e.target.value)
@@ -537,13 +462,13 @@ const RetirementCalculator = () => {
                 className="flex flex-col gap-1"
                 htmlFor="annual-inc"
               >
-                <span style={labelTextStyle}>
+                <span className={labelTextClasses}>
                   Annual contribution increase
                 </span>
                 <div className="flex items-center gap-2">
                   <input
                     id="annual-inc"
-                    style={{ ...inputStyle, flex: 1 }}
+                    className={`${inputClasses} flex-1`}
                     value={annualIncrease}
                     onChange={(e) =>
                       setAnnualIncrease(e.target.value)
@@ -560,10 +485,7 @@ const RetirementCalculator = () => {
             </div>
 
             <h2
-              style={{
-                ...sectionTitleStyle,
-                marginTop: "16px",
-              }}
+              className={`${sectionTitleClasses} mt-4`}
             >
               Contribution split &amp; TFSA
             </h2>
@@ -572,13 +494,13 @@ const RetirementCalculator = () => {
                 className="flex flex-col gap-1"
                 htmlFor="gross-income"
               >
-                <span style={labelTextStyle}>
+                <span className={labelTextClasses}>
                   Current gross income (p.a.)
                 </span>
                 <div className="flex items-center gap-2">
                   <input
                     id="gross-income"
-                    style={{ ...inputStyle, flex: 1 }}
+                    className={`${inputClasses} flex-1`}
                     value={grossIncome}
                     onChange={(e) =>
                       setGrossIncome(e.target.value)
@@ -595,13 +517,13 @@ const RetirementCalculator = () => {
                 className="flex flex-col gap-1"
                 htmlFor="tfsa-monthly"
               >
-                <span style={labelTextStyle}>
+                <span className={labelTextClasses}>
                   TFSA contribution (per month)
                 </span>
                 <div className="flex items-center gap-2">
                   <input
                     id="tfsa-monthly"
-                    style={{ ...inputStyle, flex: 1 }}
+                    className={`${inputClasses} flex-1`}
                     value={tfsaMonthly}
                     onChange={(e) =>
                       setTfsaMonthly(e.target.value)
@@ -615,11 +537,11 @@ const RetirementCalculator = () => {
                 </div>
               </label>
               <label className="flex flex-col gap-1">
-                <span style={labelTextStyle}>
+                <span className={labelTextClasses}>
                   Income growth mode
                 </span>
                 <select
-                  style={inputStyle}
+                  className={inputClasses}
                   value={incomeGrowthMode}
                   onChange={(e) =>
                     setIncomeGrowthMode(e.target.value)
@@ -638,13 +560,13 @@ const RetirementCalculator = () => {
                   className="flex flex-col gap-1"
                   htmlFor="income-growth"
                 >
-                  <span style={labelTextStyle}>
+                  <span className={labelTextClasses}>
                     Stipulated income growth p.a.
                   </span>
                   <div className="flex items-center gap-2">
                     <input
                       id="income-growth"
-                      style={{ ...inputStyle, flex: 1 }}
+                      className={`${inputClasses} flex-1`}
                       value={incomeGrowthRate}
                       onChange={(e) =>
                         setIncomeGrowthRate(e.target.value)
@@ -662,10 +584,7 @@ const RetirementCalculator = () => {
             </div>
 
             <h2
-              style={{
-                ...sectionTitleStyle,
-                marginTop: "16px",
-              }}
+              className={`${sectionTitleClasses} mt-4`}
             >
               Tax &amp; drawdown settings
             </h2>
@@ -675,8 +594,7 @@ const RetirementCalculator = () => {
                 setShowAdvancedTax((v) => !v)
               }
               aria-expanded={showAdvancedTax}
-              className="mt-1 inline-flex w-full items-center justify-between rounded-full border border-[#bedcbe] bg-[#002820] px-3 py-1 text-sm font-semibold"
-              style={{ color: "#bedcbe" }}
+              className="mt-1 inline-flex w-full items-center justify-between rounded-full border border-[#bedcbe] bg-[#002820] px-3 py-1 text-sm font-semibold text-[#bedcbe]"
             >
               <span>
                 Advanced tax &amp; drawdown options
@@ -686,11 +604,11 @@ const RetirementCalculator = () => {
             {showAdvancedTax && (
               <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
                 <label className="flex flex-col gap-1">
-                  <span style={labelTextStyle}>
+                  <span className={labelTextClasses}>
                     Tax on drawdowns
                   </span>
                   <select
-                    style={inputStyle}
+                    className={inputClasses}
                     value={taxMode}
                     onChange={(e) =>
                       setTaxMode(e.target.value)
@@ -705,13 +623,13 @@ const RetirementCalculator = () => {
                     className="flex flex-col gap-1"
                     htmlFor="flat-tax"
                   >
-                    <span style={labelTextStyle}>
+                    <span className={labelTextClasses}>
                       Flat tax rate on drawdowns
                     </span>
                     <div className="flex items-center gap-2">
                       <input
                         id="flat-tax"
-                        style={{ ...inputStyle, flex: 1 }}
+                        className={`${inputClasses} flex-1`}
                         value={flatTaxRate}
                         onChange={(e) =>
                           setFlatTaxRate(e.target.value)
@@ -727,11 +645,11 @@ const RetirementCalculator = () => {
                   </label>
                 )}
                 <label className="col-span-2 flex flex-col gap-1">
-                  <span style={labelTextStyle}>
+                  <span className={labelTextClasses}>
                     Deplete first
                   </span>
                   <select
-                    style={inputStyle}
+                    className={inputClasses}
                     value={depleteOrder}
                     onChange={(e) =>
                       setDepleteOrder(e.target.value)
@@ -747,20 +665,15 @@ const RetirementCalculator = () => {
                 </label>
                 <label className="col-span-2 inline-flex flex-col gap-1 text-sm">
                   <span
-                    style={{
-                      ...labelTextStyle,
-                      fontWeight: 400,
-                    }}
-                    className="flex items-center gap-2"
+                    className={`${labelTextClasses} flex items-center gap-2 font-normal`}
                   >
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded"
+                      className="h-4 w-4 rounded border-[#bedcbe] text-[#bedcbe] focus:ring-[#bedcbe]"
                       checked={taxRealism}
                       onChange={(e) =>
                         setTaxRealism(e.target.checked)
                       }
-                      style={{ borderColor: "#bedcbe" }}
                     />
                     Index SARS tax brackets with inflation
                     (tax realism)
@@ -776,19 +689,16 @@ const RetirementCalculator = () => {
           </section>
 
           {/* RIGHT CARD: Outputs */}
-          <section style={cardStyle}>
-            <h2 style={sectionTitleStyle}>Key outputs</h2>
+          <section className={cardClasses}>
+            <h2 className={sectionTitleClasses}>Key outputs</h2>
 
             {/* Hero metric */}
             <div className="mb-4 rounded-2xl border border-[#bedcbe] bg-[#002820] p-4">
-              <div style={keyMetricLabelStyle}>
+              <div className={keyMetricLabelClasses}>
                 Required monthly contribution
               </div>
               <div
-                style={{
-                  ...keyMetricValueStyle,
-                  fontSize: "24px",
-                }}
+                className={`${keyMetricValueClasses} text-2xl`}
               >
                 {formatCurrency(
                   outputs.requiredMonthlyContribution
@@ -809,11 +719,11 @@ const RetirementCalculator = () => {
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <div style={keyMetricLabelStyle}>
+                    <div className={keyMetricLabelClasses}>
                       Target net income in year 1 (future,
                       per month)
                     </div>
-                    <div style={keyMetricValueStyle}>
+                    <div className={keyMetricValueClasses}>
                       {formatCurrency(
                         outputs.targetNetMonthlyAtRet
                       )}
@@ -821,10 +731,10 @@ const RetirementCalculator = () => {
                   </div>
 
                   <div className="space-y-1">
-                    <div style={keyMetricLabelStyle}>
+                    <div className={keyMetricLabelClasses}>
                       Total capital at retirement
                     </div>
-                    <div style={keyMetricValueStyle}>
+                    <div className={keyMetricValueClasses}>
                       {formatCurrency(
                         outputs.totalCapitalAtRet
                       )}
@@ -832,20 +742,20 @@ const RetirementCalculator = () => {
                   </div>
 
                   <div className="space-y-1">
-                    <div style={keyMetricLabelStyle}>
+                    <div className={keyMetricLabelClasses}>
                       Projected capital – taxable
                     </div>
-                    <div style={keyMetricValueStyle}>
+                    <div className={keyMetricValueClasses}>
                       {formatCurrency(
                         outputs.taxableCapitalAtRet
                       )}
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <div style={keyMetricLabelStyle}>
+                    <div className={keyMetricLabelClasses}>
                       Projected capital – TFSA
                     </div>
-                    <div style={keyMetricValueStyle}>
+                    <div className={keyMetricValueClasses}>
                       {formatCurrency(
                         outputs.tfsaCapitalAtRet
                       )}
@@ -853,29 +763,26 @@ const RetirementCalculator = () => {
                   </div>
 
                   <div className="space-y-1">
-                    <div style={keyMetricLabelStyle}>
+                    <div className={keyMetricLabelClasses}>
                       Present value of required capital
                       (today&apos;s money)
                     </div>
-                    <div style={keyMetricValueStyle}>
+                    <div className={keyMetricValueClasses}>
                       {formatCurrency(
                         outputs.presentValueRequiredCapital
                       )}
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <div style={keyMetricLabelStyle}>
+                    <div className={keyMetricLabelClasses}>
                       Capital exhaustion age
                     </div>
                     <div
-                      style={{
-                        ...keyMetricValueStyle,
-                        color:
-                          outputs.exhaustionAge <
-                          numericLifeExpectancy
-                            ? "#ffb3b3"
-                            : "#ffffff",
-                      }}
+                      className={`${keyMetricValueClasses} ${
+                        outputs.exhaustionAge < numericLifeExpectancy
+                          ? "text-[#ffb3b3]"
+                          : "text-white"
+                      }`}
                     >
                       {outputs.exhaustionAge}
                     </div>
@@ -898,21 +805,21 @@ const RetirementCalculator = () => {
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <div style={keyMetricLabelStyle}>
+                    <div className={keyMetricLabelClasses}>
                       Year-1 drawdown % of capital
                     </div>
-                    <div style={keyMetricValueStyle}>
+                    <div className={keyMetricValueClasses}>
                       {formatPercent(
                         outputs.year1DrawdownPct
                       )}
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <div style={keyMetricLabelStyle}>
+                    <div className={keyMetricLabelClasses}>
                       Effective tax rate on year-1 drawdown
                       (real)
                     </div>
-                    <div style={keyMetricValueStyle}>
+                    <div className={keyMetricValueClasses}>
                       {formatPercent(
                         outputs.year1EffectiveTaxRate
                       )}
@@ -929,20 +836,20 @@ const RetirementCalculator = () => {
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <div style={keyMetricLabelStyle}>
+                    <div className={keyMetricLabelClasses}>
                       Total contributions until retirement
                     </div>
-                    <div style={keyMetricValueStyle}>
+                    <div className={keyMetricValueClasses}>
                       {formatCurrency(
                         outputs.totalContributionsAtRetirement
                       )}
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <div style={keyMetricLabelStyle}>
+                    <div className={keyMetricLabelClasses}>
                       Total RA tax saving until retirement
                     </div>
-                    <div style={keyMetricValueStyle}>
+                    <div className={keyMetricValueClasses}>
                       {formatCurrency(
                         outputs.totalTaxSavingsAtRetirement
                       )}
@@ -953,23 +860,17 @@ const RetirementCalculator = () => {
             </div>
 
             <h2
-              style={{
-                ...sectionTitleStyle,
-                marginTop: "16px",
-              }}
+              className={`${sectionTitleClasses} mt-4`}
             >
               RA allowance snapshot
             </h2>
             <div className="grid grid-cols-3 gap-3 text-sm">
               <div className="space-y-1">
-                <div style={keyMetricLabelStyle}>
+                <div className={keyMetricLabelClasses}>
                   Effective tax rate now
                 </div>
                 <div
-                  style={{
-                    ...keyMetricValueStyle,
-                    fontSize: "16px",
-                  }}
+                  className={`${keyMetricValueClasses} text-base`}
                 >
                   {formatPercent(
                     outputs.effectiveTaxRateNow
@@ -977,27 +878,21 @@ const RetirementCalculator = () => {
                 </div>
               </div>
               <div className="space-y-1">
-                <div style={keyMetricLabelStyle}>
+                <div className={keyMetricLabelClasses}>
                   Max RA contribution p.a.
                 </div>
                 <div
-                  style={{
-                    ...keyMetricValueStyle,
-                    fontSize: "16px",
-                  }}
+                  className={`${keyMetricValueClasses} text-base`}
                 >
                   {formatCurrency(outputs.maxRaContrib)}
                 </div>
               </div>
               <div className="space-y-1">
-                <div style={keyMetricLabelStyle}>
+                <div className={keyMetricLabelClasses}>
                   Approximate tax saving p.a.
                 </div>
                 <div
-                  style={{
-                    ...keyMetricValueStyle,
-                    fontSize: "16px",
-                  }}
+                  className={`${keyMetricValueClasses} text-base`}
                 >
                   {formatCurrency(outputs.taxSaving)}
                 </div>
@@ -1035,10 +930,9 @@ const RetirementCalculator = () => {
 
         {/* Bottom: Capital trajectory + year-by-year tables as tabs (aligned with max-w-6xl) */}
         <section
-          className="mt-6 space-y-4 shadow-sm"
-          style={cardStyle}
+          className={`${cardClasses} mt-6 space-y-4 shadow-sm`}
         >
-          <h2 style={sectionTitleStyle}>
+          <h2 className={sectionTitleClasses}>
             Detailed projections
           </h2>
 
@@ -1046,14 +940,7 @@ const RetirementCalculator = () => {
           <div
             role="tablist"
             aria-label="Projection views"
-            style={{
-              display: "flex",
-              gap: "8px",
-              backgroundColor: "#003c32",
-              padding: "4px",
-              borderRadius: "9999px",
-              marginBottom: "12px",
-            }}
+            className="mb-3 flex gap-2 rounded-full bg-[#003c32] p-1"
           >
             <button
               type="button"
@@ -1061,11 +948,11 @@ const RetirementCalculator = () => {
               aria-selected={
                 activeProjectionTab === "CAPITAL"
               }
-              style={
+              className={`${tabButtonBaseClasses} ${
                 activeProjectionTab === "CAPITAL"
-                  ? activeTabButtonStyle
-                  : tabButtonStyle
-              }
+                  ? "bg-[#bedcbe] text-[#003c32]"
+                  : "text-white"
+              }`}
               onClick={() =>
                 setActiveProjectionTab("CAPITAL")
               }
@@ -1076,11 +963,11 @@ const RetirementCalculator = () => {
               type="button"
               role="tab"
               aria-selected={activeProjectionTab === "PRE"}
-              style={
+              className={`${tabButtonBaseClasses} ${
                 activeProjectionTab === "PRE"
-                  ? activeTabButtonStyle
-                  : tabButtonStyle
-              }
+                  ? "bg-[#bedcbe] text-[#003c32]"
+                  : "text-white"
+              }`}
               onClick={() => setActiveProjectionTab("PRE")}
             >
               Pre-retirement
@@ -1089,11 +976,11 @@ const RetirementCalculator = () => {
               type="button"
               role="tab"
               aria-selected={activeProjectionTab === "POST"}
-              style={
+              className={`${tabButtonBaseClasses} ${
                 activeProjectionTab === "POST"
-                  ? activeTabButtonStyle
-                  : tabButtonStyle
-              }
+                  ? "bg-[#bedcbe] text-[#003c32]"
+                  : "text-white"
+              }`}
               onClick={() => setActiveProjectionTab("POST")}
             >
               Post-retirement
@@ -1112,11 +999,7 @@ const RetirementCalculator = () => {
                 </p>
               )}
               <div
-                className="mt-2 rounded-2xl border"
-                style={{
-                  borderColor: "#bedcbe",
-                  height: "360px",
-                }}
+                className="mt-2 h-[360px] rounded-2xl border border-[#bedcbe]"
               >
                 {outputs.capitalTrajectory.length === 0 ? (
                   <div className="flex h-full items-center justify-center text-xs text-[#bedcbe]">
@@ -1242,94 +1125,60 @@ const RetirementCalculator = () => {
           {activeProjectionTab === "PRE" && (
             <>
               <h3
-                className="mt-2 text-base font-semibold"
-                style={{ color: "#bedcbe" }}
+                className="mt-2 text-base font-semibold text-[#bedcbe]"
               >
                 Pre-retirement
               </h3>
               <div
-                className="mt-2 max-h-96 overflow-auto rounded-2xl border"
-                style={{ borderColor: "#bedcbe" }}
+                className="mt-2 max-h-96 overflow-auto rounded-2xl border border-[#bedcbe]"
               >
                 <table
-                  className="min-w-full text-[11px]"
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    tableLayout: "fixed",
-                  }}
+                  className="w-full table-fixed border-collapse text-[11px]"
                 >
                   <thead>
                     <tr>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "left",
-                        }}
+                        className={`${tableHeaderCellClasses} text-left`}
                       >
                         Age
                       </th>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "right",
-                        }}
+                        className={`${tableHeaderCellClasses} text-right`}
                       >
                         Total contrib
                       </th>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "right",
-                        }}
+                        className={`${tableHeaderCellClasses} text-right`}
                       >
                         RA contrib
                       </th>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "right",
-                        }}
+                        className={`${tableHeaderCellClasses} text-right`}
                       >
                         TFSA contrib
                       </th>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "right",
-                        }}
+                        className={`${tableHeaderCellClasses} text-right`}
                       >
                         RA start
                       </th>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "right",
-                        }}
+                        className={`${tableHeaderCellClasses} text-right`}
                       >
                         TFSA start
                       </th>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "right",
-                        }}
+                        className={`${tableHeaderCellClasses} text-right`}
                       >
                         RA end
                       </th>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "right",
-                        }}
+                        className={`${tableHeaderCellClasses} text-right`}
                       >
                         TFSA end
                       </th>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "right",
-                        }}
+                        className={`${tableHeaderCellClasses} text-right`}
                       >
                         RA tax saving
                       </th>
@@ -1339,19 +1188,14 @@ const RetirementCalculator = () => {
                     {(outputs.preTimeline || []).map(
                       (row, idx) => {
                         const isEven = idx % 2 === 0;
-                        const rowBg = isEven
-                          ? "#ffffff"
-                          : "#003c32";
-                        const rowTextColor = isEven
-                          ? "#003c32"
-                          : "#ffffff";
                         return (
                           <tr
                             key={row.yearIndex}
-                            style={{
-                              backgroundColor: rowBg,
-                              color: rowTextColor,
-                            }}
+                            className={
+                              isEven
+                                ? "bg-white text-[#003c32]"
+                                : "bg-[#003c32] text-white"
+                            }
                           >
                             <td className="px-2 py-1 text-left">
                               {row.age}
@@ -1395,17 +1239,13 @@ const RetirementCalculator = () => {
                       }
                     )}
                     {/* Summary row */}
-                    {(outputs.preTimeline || []).length >
-                      0 && (
-                      <tr
-                        style={{
-                          backgroundColor: "#002820",
-                          color: "#ffffff",
-                          fontWeight: 700,
-                        }}
-                      >
-                        <td className="px-2 py-1 text-left">
-                          Total
+                  {(outputs.preTimeline || []).length >
+                    0 && (
+                    <tr
+                      className="bg-[#002820] font-bold text-white"
+                    >
+                      <td className="px-2 py-1 text-left">
+                        Total
                         </td>
                         <td className="px-2 py-1 text-right">
                           {formatCurrency(
@@ -1451,94 +1291,60 @@ const RetirementCalculator = () => {
           {activeProjectionTab === "POST" && (
             <>
               <h3
-                className="mt-4 text-base font-semibold"
-                style={{ color: "#bedcbe" }}
+                className="mt-4 text-base font-semibold text-[#bedcbe]"
               >
                 Post-retirement
               </h3>
               <div
-                className="mt-2 max-h-96 overflow-auto rounded-2xl border"
-                style={{ borderColor: "#bedcbe" }}
+                className="mt-2 max-h-96 overflow-auto rounded-2xl border border-[#bedcbe]"
               >
                 <table
-                  className="min-w-full text-[11px]"
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    tableLayout: "fixed",
-                  }}
+                  className="w-full table-fixed border-collapse text-[11px]"
                 >
                   <thead>
                     <tr>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "left",
-                        }}
+                        className={`${tableHeaderCellClasses} text-left`}
                       >
                         Age
                       </th>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "right",
-                        }}
+                        className={`${tableHeaderCellClasses} text-right`}
                       >
                         Net required
                       </th>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "right",
-                        }}
+                        className={`${tableHeaderCellClasses} text-right`}
                       >
                         Net delivered
                       </th>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "right",
-                        }}
+                        className={`${tableHeaderCellClasses} text-right`}
                       >
                         Gross drawdown
                       </th>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "right",
-                        }}
+                        className={`${tableHeaderCellClasses} text-right`}
                       >
                         Tax
                       </th>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "right",
-                        }}
+                        className={`${tableHeaderCellClasses} text-right`}
                       >
                         RA start
                       </th>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "right",
-                        }}
+                        className={`${tableHeaderCellClasses} text-right`}
                       >
                         TFSA start
                       </th>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "right",
-                        }}
+                        className={`${tableHeaderCellClasses} text-right`}
                       >
                         RA end
                       </th>
                       <th
-                        style={{
-                          ...tableHeaderCellStyleBase,
-                          textAlign: "right",
-                        }}
+                        className={`${tableHeaderCellClasses} text-right`}
                       >
                         TFSA end
                       </th>
@@ -1548,19 +1354,14 @@ const RetirementCalculator = () => {
                     {(outputs.postTimeline || []).map(
                       (row, idx) => {
                         const isEven = idx % 2 === 0;
-                        const rowBg = isEven
-                          ? "#ffffff"
-                          : "#003c32";
-                        const rowTextColor = isEven
-                          ? "#003c32"
-                          : "#ffffff";
                         return (
                           <tr
                             key={row.yearIndex}
-                            style={{
-                              backgroundColor: rowBg,
-                              color: rowTextColor,
-                            }}
+                            className={
+                              isEven
+                                ? "bg-white text-[#003c32]"
+                                : "bg-[#003c32] text-white"
+                            }
                           >
                             <td className="px-2 py-1 text-left">
                               {row.age}
@@ -1603,11 +1404,7 @@ const RetirementCalculator = () => {
                     {(outputs.postTimeline || []).length >
                       0 && (
                       <tr
-                        style={{
-                          backgroundColor: "#002820",
-                          color: "#ffffff",
-                          fontWeight: 700,
-                        }}
+                        className="bg-[#002820] font-bold text-white"
                       >
                         <td className="px-2 py-1 text-left">
                           Total
