@@ -1,5 +1,5 @@
 // RetirementCalculator.jsx
-import React, { useEffect, useReducer, useState } from "react";
+import React, { useEffect, useReducer, useRef, useState } from "react";
 import {
   LineChart,
   Line,
@@ -166,6 +166,8 @@ const RetirementCalculator = () => {
 
   const [exportFormat, setExportFormat] = useState("pdf");
 
+  const capitalChartRef = useRef(null);
+
   // bottom section: 3 tabs: "CAPITAL", "PRE", "POST"
   const [activeProjectionTab, setActiveProjectionTab] =
     useState("CAPITAL");
@@ -236,7 +238,15 @@ const RetirementCalculator = () => {
 
   const hasExportData =
     (outputs.preTimeline || []).length > 0 ||
-    (outputs.postTimeline || []).length > 0;
+    (outputs.postTimeline || []).length > 0 ||
+    (outputs.capitalTrajectory || []).length > 0;
+
+  const capitalChartColumns = [
+    { key: "age", label: "Age" },
+    { key: "total", label: "Total capital", formatter: formatCurrency },
+    { key: "ra", label: "RA / taxable", formatter: formatCurrency },
+    { key: "tfsa", label: "TFSA", formatter: formatCurrency },
+  ];
 
   const preExportColumns = [
     { key: "age", label: "Age" },
@@ -263,6 +273,143 @@ const RetirementCalculator = () => {
   ];
 
   const buildExportSections = () => {
+    const inputRows = [
+      { label: "Current age", value: Number(currentAge) },
+      { label: "Retirement age", value: Number(retireAge) },
+      { label: "Life expectancy", value: Number(lifeExpectancy) },
+      {
+        label: "Initial capital",
+        value: formatCurrency(Number(initialCapital || 0)),
+      },
+      {
+        label: "Initial TFSA balance",
+        value: formatCurrency(Number(initialTfsaBalance || 0)),
+      },
+      {
+        label: "TFSA contributions to date",
+        value: formatCurrency(Number(tfsaContribToDate || 0)),
+      },
+      {
+        label: "Target net income today (per month)",
+        value: formatCurrency(Number(targetNetToday || 0)),
+      },
+      {
+        label: "Pre-retirement return",
+        value: formatPercent(Number(preReturn) / 100),
+      },
+      {
+        label: "Post-retirement return",
+        value: formatPercent(Number(postReturn) / 100),
+      },
+      { label: "Inflation", value: formatPercent(Number(inflation) / 100) },
+      {
+        label: "Annual contribution increase",
+        value: formatPercent(Number(annualIncrease) / 100),
+      },
+      {
+        label: "Gross income (p.a.)",
+        value: formatCurrency(Number(grossIncome || 0)),
+      },
+      {
+        label: "Income growth mode",
+        value: incomeGrowthMode === "INFLATION" ? "Inflation" : "Custom rate",
+      },
+      {
+        label: "Income growth rate",
+        value: formatPercent(Number(incomeGrowthRate) / 100),
+      },
+      {
+        label: "TFSA contribution (per month)",
+        value: formatCurrency(Number(tfsaMonthly || 0)),
+      },
+      {
+        label: "Depletion order",
+        value: depleteOrder === "TFSA_FIRST" ? "TFSA first" : "RA first",
+      },
+      {
+        label: "Tax mode",
+        value: taxMode === "SARS" ? "SARS brackets" : "Flat rate",
+      },
+      {
+        label: "Flat tax rate",
+        value: formatPercent(Number(flatTaxRate) / 100),
+      },
+      {
+        label: "Reinvest RA tax saving",
+        value: reinvestRaTaxSaving ? "Yes" : "No",
+      },
+      {
+        label: "Tax realism",
+        value: taxRealism ? "Yes" : "No",
+      },
+    ];
+
+    const outputRows = [
+      {
+        label: "Required monthly contribution",
+        value: formatCurrency(outputs.requiredMonthlyContribution),
+      },
+      {
+        label: "Target net in year 1 (future, per month)",
+        value: formatCurrency(outputs.targetNetMonthlyAtRet),
+      },
+      {
+        label: "Total capital at retirement",
+        value: formatCurrency(outputs.totalCapitalAtRet),
+      },
+      {
+        label: "Projected capital – taxable",
+        value: formatCurrency(outputs.taxableCapitalAtRet),
+      },
+      {
+        label: "Projected capital – TFSA",
+        value: formatCurrency(outputs.tfsaCapitalAtRet),
+      },
+      {
+        label: "Present value of required capital",
+        value: formatCurrency(outputs.presentValueRequiredCapital),
+      },
+      {
+        label: "Capital exhaustion age",
+        value: outputs.exhaustionAge,
+      },
+      {
+        label: "Year-1 drawdown % of capital",
+        value: formatPercent(outputs.year1DrawdownPct),
+      },
+      {
+        label: "Effective tax rate on year-1 drawdown",
+        value: formatPercent(outputs.year1EffectiveTaxRate),
+      },
+      {
+        label: "Total contributions until retirement",
+        value: formatCurrency(outputs.totalContributionsAtRetirement),
+      },
+      {
+        label: "Total RA tax saving until retirement",
+        value: formatCurrency(outputs.totalTaxSavingsAtRetirement),
+      },
+      {
+        label: "Effective tax rate now",
+        value: formatPercent(outputs.effectiveTaxRateNow),
+      },
+      {
+        label: "Max RA contribution p.a.",
+        value: formatCurrency(outputs.maxRaContrib),
+      },
+      {
+        label: "RA tax saving on contribution",
+        value: formatCurrency(outputs.taxSaving),
+      },
+    ];
+
+    const capitalRows = (outputs.capitalTrajectory || []).map((row) => ({
+      age: row.age,
+      total: row.total,
+      ra: row.ra,
+      tfsa: row.tfsa,
+    }));
+
     const preRows = (outputs.preTimeline || []).map((row) => ({
       age: row.age,
       totalContribution: row.totalContribution,
@@ -288,6 +435,27 @@ const RetirementCalculator = () => {
     }));
 
     return [
+      {
+        title: "Inputs",
+        columns: [
+          { key: "label", label: "Field" },
+          { key: "value", label: "Value" },
+        ],
+        rows: inputRows,
+      },
+      {
+        title: "Key outputs",
+        columns: [
+          { key: "label", label: "Metric" },
+          { key: "value", label: "Value" },
+        ],
+        rows: outputRows,
+      },
+      {
+        title: "Capital trajectory",
+        columns: capitalChartColumns,
+        rows: capitalRows,
+      },
       { title: "Pre-retirement timeline", columns: preExportColumns, rows: preRows },
       { title: "Post-retirement timeline", columns: postExportColumns, rows: postRows },
     ];
@@ -298,6 +466,14 @@ const RetirementCalculator = () => {
       return "-";
     }
     return col.formatter ? col.formatter(value) : String(value);
+  };
+
+  const getCapitalChartDataUrl = () => {
+    const svgNode = capitalChartRef.current?.querySelector("svg");
+    if (!svgNode) return null;
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(svgNode);
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
   };
 
   const downloadBlob = (content, filename, type) => {
@@ -341,7 +517,7 @@ const RetirementCalculator = () => {
     downloadBlob(lines.join("\n"), "revo-retirement-export.csv", "text/csv;charset=utf-8;");
   };
 
-  const buildHtmlForExport = () => {
+  const buildHtmlForExport = (chartDataUrl) => {
     const sections = buildExportSections();
     const tables = sections
       .map((section) => {
@@ -373,16 +549,24 @@ const RetirementCalculator = () => {
       })
       .join("");
 
+    const chartBlock = chartDataUrl
+      ? `<div style="margin:16px 0;">
+          <h2 style="margin:0 0 8px 0;color:#003c32;">Capital trajectory</h2>
+          <img src="${chartDataUrl}" alt="Capital trajectory" style="width:100%;max-width:800px;border:1px solid #003c32;border-radius:8px;" />
+        </div>`
+      : "";
+
     return `
       <div style="font-family:Arial, sans-serif;padding:16px;">
         <h1 style="color:#003c32;">Revo Capital - RA maximisation export</h1>
+        ${chartBlock}
         ${tables}
       </div>
     `;
   };
 
   const exportExcel = () => {
-    const html = buildHtmlForExport();
+    const html = buildHtmlForExport(getCapitalChartDataUrl());
     downloadBlob(
       html,
       "revo-retirement-export.xls",
@@ -391,22 +575,146 @@ const RetirementCalculator = () => {
   };
 
   const exportPdf = () => {
-    const html = buildHtmlForExport();
+    const html = buildHtmlForExport(getCapitalChartDataUrl());
     const printWindow = window.open("", "_blank", "noopener,noreferrer");
     if (!printWindow) {
       return;
     }
+    printWindow.document.open();
     printWindow.document.write(`
       <html>
         <head>
           <title>Revo Capital export</title>
+          <style>
+            @media print {
+              body { margin: 16px; }
+              section { page-break-inside: avoid; }
+              img { page-break-inside: avoid; }
+            }
+          </style>
         </head>
         <body>${html}</body>
       </html>
     `);
     printWindow.document.close();
     printWindow.focus();
-    printWindow.print();
+    printWindow.onload = () => {
+      printWindow.print();
+      printWindow.onafterprint = () => {
+        printWindow.close();
+      };
+    };
+  };
+
+  const renderCapitalChart = (showPlaceholder = true) => {
+    if (outputs.capitalTrajectory.length === 0) {
+      if (!showPlaceholder) return null;
+      return (
+        <div className="flex h-full items-center justify-center text-xs text-[#bedcbe]">
+          Adjust inputs to see a capital projection.
+        </div>
+      );
+    }
+
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart
+          data={outputs.capitalTrajectory}
+          margin={{
+            top: 20,
+            right: 24,
+            left: 60,
+            bottom: 24,
+          }} // added margin
+        >
+          <XAxis
+            dataKey="age"
+            stroke="#ffffff"
+            tick={{ fill: "#ffffff" }}
+            label={{
+              value: "Age",
+              position: "insideBottomRight",
+              offset: -5,
+              fill: "#ffffff",
+            }}
+          />
+          <YAxis
+            stroke="#ffffff"
+            tick={{ fill: "#ffffff" }}
+            tickFormatter={(v) => `R ${(v / 1_000_000).toFixed(1)}m`}
+            label={{
+              value: "Capital (R millions)",
+              angle: -90,
+              position: "insideLeft",
+              fill: "#ffffff",
+              dx: -30, // nudge label left so it doesn't overlap axis
+            }}
+          />
+          <Tooltip
+            formatter={(value) => formatCurrency(value)}
+            labelFormatter={(label) => `Age ${label}`}
+            contentStyle={{
+              backgroundColor: "#003c32",
+              border: "1px solid #bedcbe",
+              color: "#ffffff",
+            }}
+          />
+          <Legend
+            wrapperStyle={{
+              color: "#ffffff",
+            }}
+          />
+          <ReferenceLine
+            x={outputs.retirementAgeNumeric}
+            stroke="#ffffff"
+            strokeDasharray="4 2"
+            label={{
+              value: "Retirement",
+              fill: "#ffffff",
+              position: "insideTop",
+            }}
+          />
+          {outputs.exhaustionAge && (
+            <ReferenceLine
+              x={outputs.exhaustionAge}
+              stroke="#ffb3b3"
+              strokeDasharray="4 2"
+              label={{
+                value: "Exhaustion",
+                fill: "#ffb3b3",
+                position: "insideTop",
+              }}
+            />
+          )}
+          <Line
+            type="monotone"
+            dataKey="total"
+            name="Total capital"
+            dot={false}
+            stroke="#bedcbe"
+            strokeWidth={2}
+          />
+          <Line
+            type="monotone"
+            dataKey="ra"
+            name="RA / taxable"
+            dot={false}
+            stroke="#7ad0b0"
+            strokeWidth={2}
+            strokeDasharray="3 3"
+          />
+          <Line
+            type="monotone"
+            dataKey="tfsa"
+            name="TFSA"
+            dot={false}
+            stroke="#ffffff"
+            strokeWidth={2}
+            strokeDasharray="5 5"
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    );
   };
 
   const handleExport = (format) => {
@@ -1226,138 +1534,22 @@ const RetirementCalculator = () => {
           </div>
 
           {/* TAB 1: Capital trajectory */}
-          {activeProjectionTab === "CAPITAL" && (
-            <>
-              {outputs.exhaustionAge <
-                numericLifeExpectancy && (
-                <p className="mb-1 text-xs text-[#ffb3b3]">
-                  Capital is projected to be depleted around
-                  age {outputs.exhaustionAge}. Drawdown and/or
-                  assumptions may need adjustment.
-                </p>
-              )}
-              <div
-                className="mt-2 h-[360px] rounded-2xl border border-[#bedcbe]"
-              >
-                {outputs.capitalTrajectory.length === 0 ? (
-                  <div className="flex h-full items-center justify-center text-xs text-[#bedcbe]">
-                    Adjust inputs to see a capital projection.
-                  </div>
-                ) : (
-                  <ResponsiveContainer
-                    width="100%"
-                    height="100%"
-                  >
-                    <LineChart
-                      data={outputs.capitalTrajectory}
-                      margin={{
-                        top: 20,
-                        right: 24,
-                        left: 60,
-                        bottom: 24,
-                      }} // added margin
-                    >
-                      <XAxis
-                        dataKey="age"
-                        stroke="#ffffff"
-                        tick={{ fill: "#ffffff" }}
-                        label={{
-                          value: "Age",
-                          position:
-                            "insideBottomRight",
-                          offset: -5,
-                          fill: "#ffffff",
-                        }}
-                      />
-                      <YAxis
-                        stroke="#ffffff"
-                        tick={{ fill: "#ffffff" }}
-                        tickFormatter={(v) =>
-                          `R ${(v / 1_000_000).toFixed(
-                            1
-                          )}m`
-                        }
-                        label={{
-                          value: "Capital (R millions)",
-                          angle: -90,
-                          position: "insideLeft",
-                          fill: "#ffffff",
-                          dx: -30, // nudge label left so it doesn't overlap axis
-                        }}
-                      />
-                      <Tooltip
-                        formatter={(value) =>
-                          formatCurrency(value)
-                        }
-                        labelFormatter={(label) =>
-                          `Age ${label}`
-                        }
-                        contentStyle={{
-                          backgroundColor: "#003c32",
-                          border:
-                            "1px solid #bedcbe",
-                          color: "#ffffff",
-                        }}
-                      />
-                      <Legend
-                        wrapperStyle={{
-                          color: "#ffffff",
-                        }}
-                      />
-                      <ReferenceLine
-                        x={outputs.retirementAgeNumeric}
-                        stroke="#ffffff"
-                        strokeDasharray="4 2"
-                        label={{
-                          value: "Retirement",
-                          fill: "#ffffff",
-                          position: "insideTop",
-                        }}
-                      />
-                      {outputs.exhaustionAge && (
-                        <ReferenceLine
-                          x={outputs.exhaustionAge}
-                          stroke="#ffb3b3"
-                          strokeDasharray="4 2"
-                          label={{
-                            value: "Exhaustion",
-                            fill: "#ffb3b3",
-                            position: "insideTop",
-                          }}
-                        />
-                      )}
-                      <Line
-                        type="monotone"
-                        dataKey="total"
-                        name="Total capital"
-                        dot={false}
-                        stroke="#bedcbe"
-                        strokeWidth={2}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="ra"
-                        name="RA / taxable"
-                        dot={false}
-                        stroke="#7ad0b0"
-                        strokeWidth={2}
-                        strokeDasharray="3 3"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="tfsa"
-                        name="TFSA"
-                        dot={false}
-                        stroke="#ffffff"
-                        strokeWidth={2}
-                        strokeDasharray="5 5"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </>
-          )}
+          <div
+            className={
+              activeProjectionTab === "CAPITAL" ? "block" : "hidden"
+            }
+          >
+            {outputs.exhaustionAge < numericLifeExpectancy && (
+              <p className="mb-1 text-xs text-[#ffb3b3]">
+                Capital is projected to be depleted around age
+                {` ${outputs.exhaustionAge}.`} Drawdown and/or
+                assumptions may need adjustment.
+              </p>
+            )}
+            <div className="mt-2 h-[360px] rounded-2xl border border-[#bedcbe]">
+              {renderCapitalChart(true)}
+            </div>
+          </div>
 
           {/* TAB 2: PRE-RETIREMENT TABLE */}
           {activeProjectionTab === "PRE" && (
@@ -1687,6 +1879,13 @@ const RetirementCalculator = () => {
             </>
           )}
         </section>
+      </div>
+      <div
+        aria-hidden="true"
+        className="absolute -left-[99999px] top-0 h-[360px] w-[1200px]"
+        ref={capitalChartRef}
+      >
+        {renderCapitalChart(false)}
       </div>
     </div>
   );
