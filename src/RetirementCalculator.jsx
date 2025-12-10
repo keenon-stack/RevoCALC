@@ -1,5 +1,5 @@
 // RetirementCalculator.jsx
-import React, { useState } from "react";
+import React, { useEffect, useReducer, useState } from "react";
 import {
   LineChart,
   Line,
@@ -52,61 +52,121 @@ const presets = {
   aggressive: { preReturn: "18", postReturn: "12", inflation: "5" },
 };
 
+const defaultFormValues = {
+  currentAge: "30",
+  retireAge: "65",
+  lifeExpectancy: "100",
+  initialCapital: "0",
+  initialTfsaBalance: "0",
+  tfsaContribToDate: "0",
+  targetNetToday: "45000",
+  preReturn: "14",
+  postReturn: "10",
+  inflation: "5",
+  annualIncrease: "0",
+  grossIncome: "720000",
+  incomeGrowthMode: "INFLATION",
+  incomeGrowthRate: "0",
+  tfsaMonthly: "3000",
+  depleteOrder: "TFSA_FIRST",
+  taxMode: "SARS",
+  flatTaxRate: "25",
+  reinvestRaTaxSaving: true,
+  taxRealism: false,
+};
+
+const useCalculatorForm = () => {
+  const [values, dispatch] = useReducer((state, action) => {
+    switch (action.type) {
+      case "update":
+        return { ...state, [action.field]: action.value };
+      case "merge":
+        return { ...state, ...action.values };
+      case "reset":
+        return { ...defaultFormValues };
+      default:
+        return state;
+    }
+  }, defaultFormValues);
+
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    const current = Number(values.currentAge || 0);
+    const retire = Number(values.retireAge || 0);
+    const life = Number(values.lifeExpectancy || 0);
+    const nextErrors = {};
+
+    if (current >= retire) {
+      nextErrors.currentAge = "Current age must be less than retirement age.";
+      nextErrors.retireAge =
+        "Retirement age must be greater than current age.";
+    }
+
+    if (retire >= life) {
+      nextErrors.retireAge =
+        nextErrors.retireAge || "Retirement age must be less than life expectancy.";
+      nextErrors.lifeExpectancy =
+        "Life expectancy must be greater than retirement age.";
+    }
+
+    setErrors(nextErrors);
+  }, [values]);
+
+  const handleNumberChange = (field) => (e) =>
+    dispatch({ type: "update", field, value: e.target.value });
+  const handleSelectChange = (field) => (e) =>
+    dispatch({ type: "update", field, value: e.target.value });
+  const handleCheckboxChange = (field) => (e) =>
+    dispatch({ type: "update", field, value: e.target.checked });
+
+  const reset = () => dispatch({ type: "reset" });
+  const applyPreset = (preset) => dispatch({ type: "merge", values: preset });
+
+  return {
+    values,
+    errors,
+    handlers: {
+      number: handleNumberChange,
+      select: handleSelectChange,
+      checkbox: handleCheckboxChange,
+    },
+    reset,
+    applyPreset,
+  };
+};
+
 const RetirementCalculator = () => {
-  const [currentAge, setCurrentAge] = useState("30");
-  const [retireAge, setRetireAge] = useState("65");
-  const [lifeExpectancy, setLifeExpectancy] = useState("100");
+  const { values, errors, handlers, reset, applyPreset } = useCalculatorForm();
 
-  const [initialCapital, setInitialCapital] = useState("0");
-  const [initialTfsaBalance, setInitialTfsaBalance] = useState("0");
-  const [tfsaContribToDate, setTfsaContribToDate] = useState("0");
-  const [targetNetToday, setTargetNetToday] = useState("45000");
-
-  const [preReturn, setPreReturn] = useState("14");
-  const [postReturn, setPostReturn] = useState("10");
-  const [inflation, setInflation] = useState("5");
-  const [annualIncrease, setAnnualIncrease] = useState("0");
-
-  const [grossIncome, setGrossIncome] = useState("720000");
-  const [incomeGrowthMode, setIncomeGrowthMode] = useState("INFLATION");
-  const [incomeGrowthRate, setIncomeGrowthRate] = useState("0");
-  const [tfsaMonthly, setTfsaMonthly] = useState("3000");
-
-  const [depleteOrder, setDepleteOrder] = useState("TFSA_FIRST");
-  const [taxMode, setTaxMode] = useState("SARS");
-  const [flatTaxRate, setFlatTaxRate] = useState("25");
-  const [reinvestRaTaxSaving, setReinvestRaTaxSaving] = useState(true);
-  const [taxRealism, setTaxRealism] = useState(false);
+  const {
+    currentAge,
+    retireAge,
+    lifeExpectancy,
+    initialCapital,
+    initialTfsaBalance,
+    tfsaContribToDate,
+    targetNetToday,
+    preReturn,
+    postReturn,
+    inflation,
+    annualIncrease,
+    grossIncome,
+    incomeGrowthMode,
+    incomeGrowthRate,
+    tfsaMonthly,
+    depleteOrder,
+    taxMode,
+    flatTaxRate,
+    reinvestRaTaxSaving,
+    taxRealism,
+  } = values;
 
   const [showAdvancedTax, setShowAdvancedTax] = useState(false);
 
   // bottom section: 3 tabs: "CAPITAL", "PRE", "POST"
   const [activeProjectionTab, setActiveProjectionTab] =
     useState("CAPITAL");
-
-  // Reset to defaults
-  const resetDefaults = () => {
-    setCurrentAge("30");
-    setRetireAge("65");
-    setLifeExpectancy("100");
-    setInitialCapital("0");
-    setInitialTfsaBalance("0");
-    setTfsaContribToDate("0");
-    setTargetNetToday("45000");
-    setPreReturn("14");
-    setPostReturn("10");
-    setInflation("5");
-    setAnnualIncrease("0");
-    setGrossIncome("720000");
-    setIncomeGrowthMode("INFLATION");
-    setIncomeGrowthRate("0");
-    setTfsaMonthly("3000");
-    setDepleteOrder("TFSA_FIRST");
-    setTaxMode("SARS");
-    setFlatTaxRate("25");
-    setReinvestRaTaxSaving(true);
-    setTaxRealism(false);
-  };
 
   // --- calculations via hook (all maths lives in useRetirementProjection) ---
 
@@ -172,11 +232,6 @@ const RetirementCalculator = () => {
         outputs.maxRaContrib
       : 0;
 
-  // Simple age validation hint
-  const agesInvalid =
-    Number(currentAge || 0) >= Number(retireAge || 0) ||
-    Number(retireAge || 0) >= Number(lifeExpectancy || 0);
-
   return (
     <div className={pageClasses}>
       <div className="mx-auto max-w-6xl space-y-6">
@@ -187,7 +242,7 @@ const RetirementCalculator = () => {
             </h1>
             <button
               type="button"
-              onClick={resetDefaults}
+              onClick={reset}
               className="self-start text-xs font-semibold text-[#003c32] underline"
             >
               Reset to defaults
@@ -196,14 +251,12 @@ const RetirementCalculator = () => {
           <label
             className="inline-flex items-center gap-2 text-sm font-semibold text-[#003c32]"
           >
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-[#003c32] text-[#003c32] focus:ring-[#003c32]"
-              checked={reinvestRaTaxSaving}
-              onChange={(e) =>
-                setReinvestRaTaxSaving(e.target.checked)
-              }
-            />
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-[#003c32] text-[#003c32] focus:ring-[#003c32]"
+                checked={reinvestRaTaxSaving}
+                onChange={handlers.checkbox("reinvestRaTaxSaving")}
+              />
             <span>
               Reinvest RA tax saving annually as a lump sum
             </span>
@@ -229,12 +282,15 @@ const RetirementCalculator = () => {
                   id="current-age"
                   className={inputClasses}
                   value={currentAge}
-                  onChange={(e) =>
-                    setCurrentAge(e.target.value)
-                  }
+                  onChange={handlers.number("currentAge")}
                   type="number"
                   min={0}
                 />
+                {errors.currentAge && (
+                  <p className="text-[11px] text-[#ffb3b3]">
+                    {errors.currentAge}
+                  </p>
+                )}
               </label>
               <label
                 className="flex flex-col gap-1"
@@ -245,12 +301,15 @@ const RetirementCalculator = () => {
                   id="retire-age"
                   className={inputClasses}
                   value={retireAge}
-                  onChange={(e) =>
-                    setRetireAge(e.target.value)
-                  }
+                  onChange={handlers.number("retireAge")}
                   type="number"
                   min={0}
                 />
+                {errors.retireAge && (
+                  <p className="text-[11px] text-[#ffb3b3]">
+                    {errors.retireAge}
+                  </p>
+                )}
               </label>
               <label
                 className="flex flex-col gap-1"
@@ -263,20 +322,16 @@ const RetirementCalculator = () => {
                   id="life-exp"
                   className={inputClasses}
                   value={lifeExpectancy}
-                  onChange={(e) =>
-                    setLifeExpectancy(e.target.value)
-                  }
+                  onChange={handlers.number("lifeExpectancy")}
                   type="number"
                   min={0}
                 />
+                {errors.lifeExpectancy && (
+                  <p className="text-[11px] text-[#ffb3b3]">
+                    {errors.lifeExpectancy}
+                  </p>
+                )}
               </label>
-              {agesInvalid && (
-                <p className="col-span-2 text-[11px] text-[#ffb3b3]">
-                  Check ages: retirement age should be greater than
-                  current age, and life expectancy greater than
-                  retirement age.
-                </p>
-              )}
 
               <p className="col-span-2 mt-2 text-sm font-semibold uppercase tracking-wide text-[#9ad0b0]">
                 Existing capital
@@ -292,9 +347,7 @@ const RetirementCalculator = () => {
                   id="initial-cap"
                   className={inputClasses}
                   value={initialCapital}
-                  onChange={(e) =>
-                    setInitialCapital(e.target.value)
-                  }
+                  onChange={handlers.number("initialCapital")}
                   type="number"
                   min={0}
                 />
@@ -310,9 +363,7 @@ const RetirementCalculator = () => {
                   id="tfsa-to-date"
                   className={inputClasses}
                   value={tfsaContribToDate}
-                  onChange={(e) =>
-                    setTfsaContribToDate(e.target.value)
-                  }
+                  onChange={handlers.number("tfsaContribToDate")}
                   type="number"
                   min={0}
                 />
@@ -328,9 +379,7 @@ const RetirementCalculator = () => {
                   id="existing-tfsa"
                   className={inputClasses}
                   value={initialTfsaBalance}
-                  onChange={(e) =>
-                    setInitialTfsaBalance(e.target.value)
-                  }
+                  onChange={handlers.number("initialTfsaBalance")}
                   type="number"
                   min={0}
                 />
@@ -351,9 +400,7 @@ const RetirementCalculator = () => {
                     id="target-net"
                     className={`${inputClasses} flex-1`}
                     value={targetNetToday}
-                    onChange={(e) =>
-                      setTargetNetToday(e.target.value)
-                    }
+                    onChange={handlers.number("targetNetToday")}
                     type="number"
                     min={0}
                   />
@@ -374,9 +421,7 @@ const RetirementCalculator = () => {
                   onChange={(e) => {
                     const p = presets[e.target.value];
                     if (!p) return;
-                    setPreReturn(p.preReturn);
-                    setPostReturn(p.postReturn);
-                    setInflation(p.inflation);
+                    applyPreset(p);
                   }}
                 >
                   <option value="">Custom inputs</option>
@@ -400,9 +445,7 @@ const RetirementCalculator = () => {
                     id="pre-return"
                     className={`${inputClasses} flex-1`}
                     value={preReturn}
-                    onChange={(e) =>
-                      setPreReturn(e.target.value)
-                    }
+                    onChange={handlers.number("preReturn")}
                     type="number"
                     step="0.1"
                     min={0}
@@ -424,9 +467,7 @@ const RetirementCalculator = () => {
                     id="post-return"
                     className={`${inputClasses} flex-1`}
                     value={postReturn}
-                    onChange={(e) =>
-                      setPostReturn(e.target.value)
-                    }
+                    onChange={handlers.number("postReturn")}
                     type="number"
                     step="0.1"
                     min={0}
@@ -446,9 +487,7 @@ const RetirementCalculator = () => {
                     id="inflation"
                     className={`${inputClasses} flex-1`}
                     value={inflation}
-                    onChange={(e) =>
-                      setInflation(e.target.value)
-                    }
+                    onChange={handlers.number("inflation")}
                     type="number"
                     step="0.1"
                     min={0}
@@ -470,9 +509,7 @@ const RetirementCalculator = () => {
                     id="annual-inc"
                     className={`${inputClasses} flex-1`}
                     value={annualIncrease}
-                    onChange={(e) =>
-                      setAnnualIncrease(e.target.value)
-                    }
+                    onChange={handlers.number("annualIncrease")}
                     type="number"
                     step="0.1"
                     min={0}
@@ -502,9 +539,7 @@ const RetirementCalculator = () => {
                     id="gross-income"
                     className={`${inputClasses} flex-1`}
                     value={grossIncome}
-                    onChange={(e) =>
-                      setGrossIncome(e.target.value)
-                    }
+                    onChange={handlers.number("grossIncome")}
                     type="number"
                     min={0}
                   />
@@ -525,9 +560,7 @@ const RetirementCalculator = () => {
                     id="tfsa-monthly"
                     className={`${inputClasses} flex-1`}
                     value={tfsaMonthly}
-                    onChange={(e) =>
-                      setTfsaMonthly(e.target.value)
-                    }
+                    onChange={handlers.number("tfsaMonthly")}
                     type="number"
                     min={0}
                   />
@@ -543,9 +576,7 @@ const RetirementCalculator = () => {
                 <select
                   className={inputClasses}
                   value={incomeGrowthMode}
-                  onChange={(e) =>
-                    setIncomeGrowthMode(e.target.value)
-                  }
+                  onChange={handlers.select("incomeGrowthMode")}
                 >
                   <option value="INFLATION">
                     Grow with inflation input
@@ -564,16 +595,14 @@ const RetirementCalculator = () => {
                     Stipulated income growth p.a.
                   </span>
                   <div className="flex items-center gap-2">
-                    <input
-                      id="income-growth"
-                      className={`${inputClasses} flex-1`}
-                      value={incomeGrowthRate}
-                      onChange={(e) =>
-                        setIncomeGrowthRate(e.target.value)
-                      }
-                      type="number"
-                      step="0.1"
-                      min={0}
+                  <input
+                    id="income-growth"
+                    className={`${inputClasses} flex-1`}
+                    value={incomeGrowthRate}
+                    onChange={handlers.number("incomeGrowthRate")}
+                    type="number"
+                    step="0.1"
+                    min={0}
                     />
                     <span className="text-xs text-[#bedcbe]">
                       % p.a.
@@ -610,9 +639,7 @@ const RetirementCalculator = () => {
                   <select
                     className={inputClasses}
                     value={taxMode}
-                    onChange={(e) =>
-                      setTaxMode(e.target.value)
-                    }
+                    onChange={handlers.select("taxMode")}
                   >
                     <option value="SARS">SARS tables</option>
                     <option value="FLAT">Flat %</option>
@@ -631,9 +658,7 @@ const RetirementCalculator = () => {
                         id="flat-tax"
                         className={`${inputClasses} flex-1`}
                         value={flatTaxRate}
-                        onChange={(e) =>
-                          setFlatTaxRate(e.target.value)
-                        }
+                        onChange={handlers.number("flatTaxRate")}
                         type="number"
                         step="0.1"
                         min={0}
@@ -651,9 +676,7 @@ const RetirementCalculator = () => {
                   <select
                     className={inputClasses}
                     value={depleteOrder}
-                    onChange={(e) =>
-                      setDepleteOrder(e.target.value)
-                    }
+                    onChange={handlers.select("depleteOrder")}
                   >
                     <option value="TFSA_FIRST">
                       TFSA first
@@ -671,9 +694,7 @@ const RetirementCalculator = () => {
                       type="checkbox"
                       className="h-4 w-4 rounded border-[#bedcbe] text-[#bedcbe] focus:ring-[#bedcbe]"
                       checked={taxRealism}
-                      onChange={(e) =>
-                        setTaxRealism(e.target.checked)
-                      }
+                      onChange={handlers.checkbox("taxRealism")}
                     />
                     Index SARS tax brackets with inflation
                     (tax realism)
