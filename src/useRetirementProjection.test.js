@@ -124,7 +124,6 @@ describe("useRetirementProjection domain calculations", () => {
       lifeExpectancy: 40,
       preReturn: 0,
       tfsaMonthly: 800,
-      contributionMonthly: 1_000,
       tfsaContribToDate: 495_000,
     };
 
@@ -134,10 +133,13 @@ describe("useRetirementProjection domain calculations", () => {
     expect(preTimeline).toHaveLength(1);
     const year0 = preTimeline[0];
 
+    // With no net target the solver converges on ~0 monthly contribution, so
+    // the only deposits come from TFSA overflow (5k into TFSA before the
+    // lifetime cap is hit, ~4.6k overflow into RA for the remaining months).
     expect(year0.tfsaContribution).toBe(5_000);
-    expect(year0.raContribution).toBe(7_000);
-    expect(year0.totalContribution).toBe(12_000);
+    expect(year0.raContribution).toBe(4_600);
+    expect(year0.totalContribution).toBe(9_600);
     expect(year0.tfsaEnd).toBeCloseTo(5_000, 6);
-    expect(year0.raEnd).toBeCloseTo(7_000, 6);
+    expect(year0.raEnd).toBeCloseTo(4_600, 6);
   });
 });
