@@ -384,133 +384,173 @@ const RetirementCalculator = () => {
   ];
 
   const buildExportSections = () => {
-    const inputRows = [
-      { label: "Current age", value: Number(currentAge) },
-      { label: "Retirement age", value: Number(retireAge) },
-      { label: "Life expectancy", value: Number(lifeExpectancy) },
+    const inputGroups = [
       {
-        label: "Initial capital",
-        value: formatCurrency(Number(initialCapital || 0)),
+        title: "Ages",
+        rows: [
+          { label: "Current age", value: Number(currentAge) },
+          { label: "Retirement age", value: Number(retireAge) },
+          { label: "Life expectancy", value: Number(lifeExpectancy) },
+        ],
       },
       {
-        label: "Initial TFSA balance",
-        value: formatCurrency(Number(initialTfsaBalance || 0)),
+        title: "Existing capital",
+        rows: [
+          {
+            label: "Initial capital",
+            value: formatCurrency(Number(initialCapital || 0)),
+          },
+          {
+            label: "Initial TFSA balance",
+            value: formatCurrency(Number(initialTfsaBalance || 0)),
+          },
+          {
+            label: "TFSA contributions to date",
+            value: formatCurrency(Number(tfsaContribToDate || 0)),
+          },
+        ],
       },
       {
-        label: "TFSA contributions to date",
-        value: formatCurrency(Number(tfsaContribToDate || 0)),
+        title: "Income target & returns",
+        rows: [
+          {
+            label: "Target net income today (per month)",
+            value: formatCurrency(Number(targetNetToday || 0)),
+          },
+          {
+            label: "Pre-retirement return",
+            value: formatPercent(Number(preReturn) / 100),
+          },
+          {
+            label: "Post-retirement return",
+            value: formatPercent(Number(postReturn) / 100),
+          },
+          { label: "Inflation", value: formatPercent(Number(inflation) / 100) },
+          {
+            label: "Annual contribution increase",
+            value: formatPercent(Number(annualIncrease) / 100),
+          },
+          {
+            label: "Gross income (p.a.)",
+            value: formatCurrency(Number(grossIncome || 0)),
+          },
+          {
+            label: "Income growth mode",
+            value: incomeGrowthMode === "INFLATION" ? "Inflation" : "Custom rate",
+          },
+          {
+            label: "Income growth rate",
+            value: formatPercent(Number(incomeGrowthRate) / 100),
+          },
+        ],
       },
       {
-        label: "Target net income today (per month)",
-        value: formatCurrency(Number(targetNetToday || 0)),
+        title: "Contribution split & TFSA",
+        rows: [
+          {
+            label: "TFSA contribution (per month)",
+            value: formatCurrency(Number(tfsaMonthly || 0)),
+          },
+          {
+            label: "Depletion order",
+            value: depleteOrder === "TFSA_FIRST" ? "TFSA first" : "RA first",
+          },
+          {
+            label: "Reinvest RA tax saving",
+            value: reinvestRaTaxSaving ? "Yes" : "No",
+          },
+        ],
       },
       {
-        label: "Pre-retirement return",
-        value: formatPercent(Number(preReturn) / 100),
-      },
-      {
-        label: "Post-retirement return",
-        value: formatPercent(Number(postReturn) / 100),
-      },
-      { label: "Inflation", value: formatPercent(Number(inflation) / 100) },
-      {
-        label: "Annual contribution increase",
-        value: formatPercent(Number(annualIncrease) / 100),
-      },
-      {
-        label: "Gross income (p.a.)",
-        value: formatCurrency(Number(grossIncome || 0)),
-      },
-      {
-        label: "Income growth mode",
-        value: incomeGrowthMode === "INFLATION" ? "Inflation" : "Custom rate",
-      },
-      {
-        label: "Income growth rate",
-        value: formatPercent(Number(incomeGrowthRate) / 100),
-      },
-      {
-        label: "TFSA contribution (per month)",
-        value: formatCurrency(Number(tfsaMonthly || 0)),
-      },
-      {
-        label: "Depletion order",
-        value: depleteOrder === "TFSA_FIRST" ? "TFSA first" : "RA first",
-      },
-      {
-        label: "Tax mode",
-        value: taxMode === "SARS" ? "SARS brackets" : "Flat rate",
-      },
-      {
-        label: "Flat tax rate",
-        value: formatPercent(Number(flatTaxRate) / 100),
-      },
-      {
-        label: "Reinvest RA tax saving",
-        value: reinvestRaTaxSaving ? "Yes" : "No",
-      },
-      {
-        label: "Tax realism",
-        value: taxRealism ? "Yes" : "No",
+        title: "Tax & drawdown settings",
+        rows: [
+          {
+            label: "Tax mode",
+            value: taxMode === "SARS" ? "SARS brackets" : "Flat rate",
+          },
+          {
+            label: "Flat tax rate",
+            value: formatPercent(Number(flatTaxRate) / 100),
+          },
+          {
+            label: "Tax realism",
+            value: taxRealism ? "Yes" : "No",
+          },
+          {
+            label: "Year-1 drawdown % of capital",
+            value: formatPercent(outputs.year1DrawdownPct),
+          },
+        ],
       },
     ];
 
-    const outputRows = [
+    const outputGroups = [
       {
-        label: "Required monthly contribution",
-        value: formatCurrency(outputs.requiredMonthlyContribution),
+        title: "Income readiness",
+        rows: [
+          {
+            label: "Required monthly contribution",
+            value: formatCurrency(outputs.requiredMonthlyContribution),
+          },
+          {
+            label: "Target net in year 1 (future, per month)",
+            value: formatCurrency(outputs.targetNetMonthlyAtRet),
+          },
+          {
+            label: "Capital exhaustion age",
+            value: outputs.exhaustionAge,
+          },
+          {
+            label: "Effective tax rate on year-1 drawdown",
+            value: formatPercent(outputs.year1EffectiveTaxRate),
+          },
+        ],
       },
       {
-        label: "Target net in year 1 (future, per month)",
-        value: formatCurrency(outputs.targetNetMonthlyAtRet),
+        title: "Capital at retirement",
+        rows: [
+          {
+            label: "Total capital at retirement",
+            value: formatCurrency(outputs.totalCapitalAtRet),
+          },
+          {
+            label: "Projected capital – taxable",
+            value: formatCurrency(outputs.taxableCapitalAtRet),
+          },
+          {
+            label: "Projected capital – TFSA",
+            value: formatCurrency(outputs.tfsaCapitalAtRet),
+          },
+          {
+            label: "Present value of required capital",
+            value: formatCurrency(outputs.presentValueRequiredCapital),
+          },
+        ],
       },
       {
-        label: "Total capital at retirement",
-        value: formatCurrency(outputs.totalCapitalAtRet),
-      },
-      {
-        label: "Projected capital – taxable",
-        value: formatCurrency(outputs.taxableCapitalAtRet),
-      },
-      {
-        label: "Projected capital – TFSA",
-        value: formatCurrency(outputs.tfsaCapitalAtRet),
-      },
-      {
-        label: "Present value of required capital",
-        value: formatCurrency(outputs.presentValueRequiredCapital),
-      },
-      {
-        label: "Capital exhaustion age",
-        value: outputs.exhaustionAge,
-      },
-      {
-        label: "Year-1 drawdown % of capital",
-        value: formatPercent(outputs.year1DrawdownPct),
-      },
-      {
-        label: "Effective tax rate on year-1 drawdown",
-        value: formatPercent(outputs.year1EffectiveTaxRate),
-      },
-      {
-        label: "Total contributions until retirement",
-        value: formatCurrency(outputs.totalContributionsAtRetirement),
-      },
-      {
-        label: "Total RA tax saving until retirement",
-        value: formatCurrency(outputs.totalTaxSavingsAtRetirement),
-      },
-      {
-        label: "Effective tax rate now",
-        value: formatPercent(outputs.effectiveTaxRateNow),
-      },
-      {
-        label: "Max RA contribution p.a.",
-        value: formatCurrency(outputs.maxRaContrib),
-      },
-      {
-        label: "RA tax saving on contribution",
-        value: formatCurrency(outputs.taxSaving),
+        title: "Contribution summary",
+        rows: [
+          {
+            label: "Total contributions until retirement",
+            value: formatCurrency(outputs.totalContributionsAtRetirement),
+          },
+          {
+            label: "Total RA tax saving until retirement",
+            value: formatCurrency(outputs.totalTaxSavingsAtRetirement),
+          },
+          {
+            label: "Max RA contribution p.a.",
+            value: formatCurrency(outputs.maxRaContrib),
+          },
+          {
+            label: "RA tax saving on contribution",
+            value: formatCurrency(outputs.taxSaving),
+          },
+          {
+            label: "Effective tax rate now",
+            value: formatPercent(outputs.effectiveTaxRateNow),
+          },
+        ],
       },
     ];
 
@@ -545,30 +585,40 @@ const RetirementCalculator = () => {
       tfsaEnd: row.tfsaEnd,
     }));
 
+    return {
+      inputGroups,
+      outputGroups,
+      capital: { title: "Capital trajectory", columns: capitalChartColumns, rows: capitalRows },
+      pre: { title: "Pre-retirement timeline", columns: preExportColumns, rows: preRows },
+      post: { title: "Post-retirement timeline", columns: postExportColumns, rows: postRows },
+    };
+  };
+
+  const buildTabularSections = () => {
+    const { inputGroups, outputGroups, capital, pre, post } = buildExportSections();
+
+    const flattenGroups = (title, groups) => ({
+      title,
+      columns: [
+        { key: "group", label: "Category" },
+        { key: "label", label: "Field" },
+        { key: "value", label: "Value" },
+      ],
+      rows: groups.flatMap((group) =>
+        group.rows.map((row) => ({
+          group: group.title,
+          label: row.label,
+          value: row.value,
+        }))
+      ),
+    });
+
     return [
-      {
-        title: "Inputs",
-        columns: [
-          { key: "label", label: "Field" },
-          { key: "value", label: "Value" },
-        ],
-        rows: inputRows,
-      },
-      {
-        title: "Key outputs",
-        columns: [
-          { key: "label", label: "Metric" },
-          { key: "value", label: "Value" },
-        ],
-        rows: outputRows,
-      },
-      {
-        title: "Capital trajectory",
-        columns: capitalChartColumns,
-        rows: capitalRows,
-      },
-      { title: "Pre-retirement timeline", columns: preExportColumns, rows: preRows },
-      { title: "Post-retirement timeline", columns: postExportColumns, rows: postRows },
+      flattenGroups("Inputs", inputGroups),
+      flattenGroups("Key outputs", outputGroups),
+      capital,
+      pre,
+      post,
     ];
   };
 
@@ -601,7 +651,7 @@ const RetirementCalculator = () => {
   };
 
   const exportCsv = () => {
-    const sections = buildExportSections();
+    const sections = buildTabularSections();
     const lines = [];
 
     sections.forEach((section, idx) => {
@@ -629,50 +679,137 @@ const RetirementCalculator = () => {
   };
 
   const buildHtmlForExport = (chartDataUrl) => {
-    const sections = buildExportSections();
-    const tables = sections
-      .map((section) => {
-        const header = section.columns
-          .map((col) => `<th style="border:1px solid #003c32;padding:6px;">${col.label}</th>`)
-          .join("");
+    const { inputGroups, outputGroups, capital, pre, post } = buildExportSections();
+    const logoUrl = `${window.location.origin}/revo-capital-logo.svg`;
 
-        const rows = section.rows
-          .map((row) => {
-            const cells = section.columns
-              .map((col) => {
-                const value = formatExportValue(col, row[col.key]);
-                return `<td style="border:1px solid #003c32;padding:6px;">${value}</td>`;
-              })
-              .join("");
-            return `<tr>${cells}</tr>`;
-          })
-          .join("");
+    const renderTable = (section) => {
+      const header = section.columns
+        .map(
+          (col) =>
+            `<th style="border:1px solid #003c32;padding:10px 8px;text-align:left;font-weight:700;">${col.label}</th>`
+        )
+        .join("");
 
-        return `
-          <section style="margin-bottom:16px;">
-            <h2 style="margin:0 0 8px 0;color:#003c32;">${section.title}</h2>
-            <table style="border-collapse:collapse;width:100%;font-size:12px;">
-              <thead><tr style="background:#e0f0e5;">${header}</tr></thead>
-              <tbody>${rows}</tbody>
-            </table>
-          </section>
-        `;
-      })
-      .join("");
+      const rows = section.rows
+        .map((row) => {
+          const cells = section.columns
+            .map((col) => {
+              const value = formatExportValue(col, row[col.key]);
+              return `<td style="border:1px solid #d6e7dc;padding:10px 8px;">${value}</td>`;
+            })
+            .join("");
+          return `<tr>${cells}</tr>`;
+        })
+        .join("");
+
+      return `
+        <div class="card" style="page-break-inside:avoid;">
+          <h3 style="margin:0 0 12px 0;color:#003c32;">${section.title}</h3>
+          <table style="border-collapse:collapse;width:100%;font-size:12px;">
+            <thead><tr style="background:#e7f3ed;">${header}</tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
+    };
+
+    const renderGroups = (groups) =>
+      groups
+        .map((group) => {
+          const items = group.rows
+            .map(
+              (row) => `
+                <div class="info-row">
+                  <span class="label">${row.label}</span>
+                  <span class="value">${row.value}</span>
+                </div>
+              `
+            )
+            .join("");
+          return `
+            <div class="card" style="page-break-inside:avoid;">
+              <h3 style="margin:0 0 8px 0;color:#003c32;">${group.title}</h3>
+              <div class="info-grid">${items}</div>
+            </div>
+          `;
+        })
+        .join("");
 
     const chartBlock = chartDataUrl
-      ? `<div style="margin:16px 0;">
-          <h2 style="margin:0 0 8px 0;color:#003c32;">Capital trajectory</h2>
-          <img src="${chartDataUrl}" alt="Capital trajectory" style="width:100%;max-width:800px;border:1px solid #003c32;border-radius:8px;" />
-        </div>`
+      ? `
+        <div class="card" style="page-break-inside:avoid;">
+          <h3 style="margin:0 0 12px 0;color:#003c32;">Capital trajectory</h3>
+          <div style="border:1px solid #d6e7dc;border-radius:12px;padding:12px;">
+            <img src="${chartDataUrl}" alt="Capital trajectory" style="width:100%;max-height:460px;object-fit:contain;" />
+          </div>
+        </div>
+      `
       : "";
 
+    const capitalTable = capital.rows.length ? renderTable(capital) : "";
+    const preTable = pre.rows.length ? renderTable(pre) : "";
+    const postTable = post.rows.length ? renderTable(post) : "";
+
+    const footer = `
+      <img src="${logoUrl}" alt="Revo Capital" style="position:absolute;right:16px;bottom:16px;width:160px;opacity:0.9;" />
+    `;
+
     return `
-      <div style="font-family:Arial, sans-serif;padding:16px;">
-        <h1 style="color:#003c32;">Revo Capital - RA maximisation export</h1>
-        ${chartBlock}
-        ${tables}
-      </div>
+      <html>
+        <head>
+          <title>Revo Capital export</title>
+          <style>
+            @media print {
+              body { margin: 0; }
+              .page { page-break-after: always; }
+              .page:last-of-type { page-break-after: auto; }
+            }
+            body { font-family: Arial, sans-serif; background:#f7faf7; color:#003c32; margin:0; }
+            h1, h2, h3 { font-weight: 700; }
+            .page { min-height: 100vh; padding: 32px 28px 64px; box-sizing: border-box; position: relative; }
+            .cover { background: linear-gradient(135deg, #003c32 0%, #005f4d 50%, #7ad0b0 100%); color: #ffffff; display:flex; flex-direction:column; gap:48px; }
+            .cover-logo { width: 280px; }
+            .cover-title { font-size: 34px; margin: 0; }
+            .cover-subtitle { font-size: 16px; margin: 0; max-width: 560px; }
+            .card { background: #ffffff; border:1px solid #d6e7dc; border-radius: 14px; padding: 16px 18px; box-shadow: 0 6px 20px rgba(0, 60, 50, 0.08); margin-bottom: 16px; }
+            .info-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px 14px; }
+            .info-row { display:flex; flex-direction:column; gap:4px; padding:8px 10px; background:#f3f8f5; border-radius:10px; }
+            .label { font-size:12px; font-weight:700; color:#005f4d; }
+            .value { font-size:13px; color:#002b24; word-break:break-word; }
+          </style>
+        </head>
+        <body>
+          <section class="page cover">
+            <img class="cover-logo" src="${logoUrl}" alt="Revo Capital" />
+            <div>
+              <h1 class="cover-title">Retirement projection summary</h1>
+              <p class="cover-subtitle">A printable snapshot of your inputs, outputs, and timelines for Revo Capital's RA maximisation calculator.</p>
+              <p class="cover-subtitle" style="opacity:0.8;">Generated on ${new Date().toLocaleDateString()}</p>
+            </div>
+          </section>
+
+          <section class="page">
+            <h2 style="margin:0 0 12px 0;">Inputs</h2>
+            ${renderGroups(inputGroups)}
+            ${footer}
+          </section>
+
+          <section class="page">
+            <h2 style="margin:0 0 12px 0;">Outputs</h2>
+            ${renderGroups(outputGroups)}
+            ${chartBlock}
+            ${capitalTable}
+            ${footer}
+          </section>
+
+          ${preTable
+            ? `<section class="page" style="page-break-before:always;">${preTable}${footer}</section>`
+            : ""}
+          ${postTable
+            ? `<section class="page" style="page-break-before:always;">${postTable}${footer}</section>`
+            : ""}
+        </body>
+      </html>
     `;
   };
 

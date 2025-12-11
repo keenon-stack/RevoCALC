@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 140" role="img" aria-label="Revo Capital">
+  <style>
+    .text { font-family: 'Inter', Arial, sans-serif; fill: #009e88; font-weight: 700; }
+  </style>
+  <rect width="720" height="140" fill="transparent" />
+  <g fill="#009e88">
+    <rect x="12" y="50" width="34" height="48" rx="6" />
+    <rect x="54" y="50" width="34" height="48" rx="6" />
+    <rect x="96" y="50" width="34" height="48" rx="6" />
+    <circle cx="38" cy="38" r="10" />
+  </g>
+  <text class="text" x="150" y="92" font-size="72">REVO</text>
+  <text class="text" x="390" y="92" font-size="64" font-weight="600">Capital</text>
+</svg>
