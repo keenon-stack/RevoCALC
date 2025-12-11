@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { uiClasses } from "./uiTheme";
 import { useRetirementProjection } from "./useRetirementProjection";
+import { EXPORT_LOGO_DATA_URL } from "./assets/exportLogoData";
 
 // --- formatting helpers (UI only) ---
 
@@ -582,9 +583,14 @@ const RetirementCalculator = () => {
   const getCapitalChartDataUrl = () => {
     const svgNode = capitalChartRef.current?.querySelector("svg");
     if (!svgNode) return null;
+    const clonedSvg = svgNode.cloneNode(true);
+    if (!clonedSvg.getAttribute("xmlns")) {
+      clonedSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    }
     const serializer = new XMLSerializer();
-    const svgString = serializer.serializeToString(svgNode);
-    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
+    const svgString = serializer.serializeToString(clonedSvg);
+    const encoded = window.btoa(unescape(encodeURIComponent(svgString)));
+    return `data:image/svg+xml;base64,${encoded}`;
   };
 
   const downloadBlob = (content, filename, type) => {
@@ -630,52 +636,228 @@ const RetirementCalculator = () => {
 
   const buildHtmlForExport = (chartDataUrl) => {
     const sections = buildExportSections();
-    const tables = sections
-      .map((section) => {
-        const header = section.columns
-          .map((col) => `<th style="border:1px solid #003c32;padding:6px;">${col.label}</th>`)
-          .join("");
+    const outputsSection = sections[1];
+    const preSection = sections[3];
+    const postSection = sections[4];
 
-        const rows = section.rows
-          .map((row) => {
-            const cells = section.columns
-              .map((col) => {
-                const value = formatExportValue(col, row[col.key]);
-                return `<td style="border:1px solid #003c32;padding:6px;">${value}</td>`;
-              })
-              .join("");
-            return `<tr>${cells}</tr>`;
-          })
-          .join("");
+    const groupedInputs = [
+      {
+        title: "Ages",
+        rows: [
+          { label: "Current age", value: values.currentAge },
+          { label: "Retirement age", value: values.retireAge },
+          { label: "Life expectancy", value: values.lifeExpectancy },
+        ],
+      },
+      {
+        title: "Existing capital",
+        rows: [
+          { label: "Initial capital", value: formatCurrency(sanitizedNumbers.initialCapital) },
+          {
+            label: "TFSA contributions to date",
+            value: formatCurrency(sanitizedNumbers.tfsaContribToDate),
+          },
+          {
+            label: "Existing TFSA balance",
+            value: formatCurrency(sanitizedNumbers.initialTfsaBalance),
+          },
+        ],
+      },
+      {
+        title: "Income target & returns",
+        rows: [
+          {
+            label: "Target net income (today)",
+            value: formatCurrency(sanitizedNumbers.targetNetToday),
+          },
+          {
+            label: "Income growth",
+            value:
+              values.incomeGrowthMode === "INFLATION"
+                ? "Matches inflation"
+                : formatPercent(Number(sanitizedNumbers.incomeGrowthRate) / 100),
+          },
+          {
+            label: "Pre-retirement return",
+            value: formatPercent(Number(sanitizedNumbers.preReturn) / 100),
+          },
+          {
+            label: "Post-retirement return",
+            value: formatPercent(Number(sanitizedNumbers.postReturn) / 100),
+          },
+          { label: "Inflation", value: formatPercent(Number(sanitizedNumbers.inflation) / 100) },
+        ],
+      },
+      {
+        title: "Contribution split & TFSA",
+        rows: [
+          {
+            label: "Annual contribution increase",
+            value: formatPercent(Number(sanitizedNumbers.annualIncrease) / 100),
+          },
+          { label: "Gross income", value: formatCurrency(sanitizedNumbers.grossIncome) },
+          { label: "TFSA contribution (per month)", value: formatCurrency(sanitizedNumbers.tfsaMonthly) },
+          {
+            label: "Depletion order",
+            value: values.depleteOrder === "TFSA_FIRST" ? "TFSA first" : "RA first",
+          },
+        ],
+      },
+      {
+        title: "Tax & drawdown settings",
+        rows: [
+          { label: "Tax mode", value: values.taxMode === "SARS" ? "SARS brackets" : "Flat rate" },
+          { label: "Flat tax rate", value: formatPercent(Number(sanitizedNumbers.flatTaxRate) / 100) },
+          { label: "Reinvest RA tax saving", value: reinvestRaTaxSaving ? "Yes" : "No" },
+          { label: "Tax realism", value: taxRealism ? "Yes" : "No" },
+        ],
+      },
+    ];
 
-        return `
-          <section style="margin-bottom:16px;">
-            <h2 style="margin:0 0 8px 0;color:#003c32;">${section.title}</h2>
-            <table style="border-collapse:collapse;width:100%;font-size:12px;">
-              <thead><tr style="background:#e0f0e5;">${header}</tr></thead>
-              <tbody>${rows}</tbody>
-            </table>
-          </section>
-        `;
-      })
-      .join("");
+    const renderInputGroup = (group) => {
+      const rows = group.rows
+        .map(
+          (row) =>
+            `<div class="pill"><p class="pill-label">${row.label}</p><p class="pill-value">${row.value}</p></div>`
+        )
+        .join("");
+      return `<div class="input-card"><h3>${group.title}</h3>${rows}</div>`;
+    };
+
+    const chunkOutputs = (rows) => {
+      const midpoint = Math.ceil(rows.length / 2);
+      return [rows.slice(0, midpoint), rows.slice(midpoint)];
+    };
+
+    const renderOutputList = (rows) =>
+      `<ul class="output-list">${rows
+        .map(
+          (row) =>
+            `<li><span class="pill-label">${row.label}</span><span class="pill-value">${formatExportValue(
+              { formatter: (val) => val },
+              row.value
+            )}</span></li>`
+        )
+        .join("")}</ul>`;
+
+    const renderTableSection = (section) => {
+      const header = section.columns
+        .map((col) => `<th>${col.label}</th>`)
+        .join("");
+      const rows = section.rows
+        .map((row) => {
+          const cells = section.columns
+            .map((col) => `<td>${formatExportValue(col, row[col.key])}</td>`)
+            .join("");
+          return `<tr>${cells}</tr>`;
+        })
+        .join("");
+
+      return `
+        <div class="section-block table-section">
+          <h2>${section.title}</h2>
+          <table>
+            <thead><tr>${header}</tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
+    };
 
     const chartBlock = chartDataUrl
-      ? `<div style="margin:16px 0;">
-          <h2 style="margin:0 0 8px 0;color:#003c32;">Capital trajectory</h2>
-          <img src="${chartDataUrl}" alt="Capital trajectory" style="width:100%;max-width:800px;border:1px solid #003c32;border-radius:8px;" />
+      ? `<div class="section-block chart-block">
+          <h3>Capital trajectory</h3>
+          <div class="chart-frame">
+            <img src="${chartDataUrl}" alt="Capital trajectory" />
+          </div>
         </div>`
       : "";
 
+    const footerLogo = `<div class="page-footer"><img src="${EXPORT_LOGO_DATA_URL}" alt="Revo Capital logo" /></div>`;
+
     return `
-      <div style="font-family:Arial, sans-serif;padding:16px;">
-        <h1 style="color:#003c32;">Revo Capital - RA maximisation export</h1>
-        ${chartBlock}
-        ${tables}
-      </div>
+      <html>
+        <head>
+          <title>Revo Capital export</title>
+          <style>
+            @page { size: A4; margin: 16mm; }
+            * { box-sizing: border-box; }
+            body { margin: 0; font-family: Arial, sans-serif; color: #003c32; background: #f7fbf8; }
+            h1 { margin: 0; font-size: 22px; }
+            h2 { margin: 0 0 8px 0; font-size: 18px; }
+            h3 { margin: 0 0 6px 0; font-size: 14px; color: #003c32; }
+            .document { width: 100%; }
+            .page { page-break-after: always; position: relative; min-height: calc(297mm - 32mm); padding: 12mm; background: #f7fbf8; }
+            .page:last-of-type { page-break-after: auto; }
+            .page-body { display: flex; flex-direction: column; gap: 10px; }
+            .page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+            .page-header img { height: 60px; }
+            .section-block { background: #ffffff; border: 1px solid #003c32; border-radius: 8px; padding: 12px; }
+            .section-block + .section-block { margin-top: 10px; }
+            .inputs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+            .input-card { border: 1px solid #cde5d7; border-radius: 8px; padding: 10px; background: #f7fbf8; }
+            .pill { display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; background: #ffffff; border: 1px solid #cde5d7; border-radius: 6px; margin-top: 4px; font-size: 12px; }
+            .pill-label { font-weight: 700; font-size: 12px; }
+            .pill-value { font-size: 12px; text-align: right; }
+            .output-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+            .output-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr; gap: 6px; }
+            .output-list li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 8px; border: 1px solid #cde5d7; border-radius: 6px; background: #ffffff; font-size: 12px; }
+            .chart-block h3 { margin-bottom: 6px; }
+            .chart-frame { border: 1px solid #003c32; border-radius: 8px; padding: 8px; background: #ffffff; }
+            .chart-frame img { width: 100%; max-height: 320px; object-fit: contain; }
+            table { width: 100%; border-collapse: collapse; font-size: 11px; }
+            th, td { border: 1px solid #003c32; padding: 6px; text-align: right; }
+            th { background: #e0f0e5; text-align: left; }
+            .table-section { page-break-inside: avoid; }
+            .page-footer { position: absolute; right: 12mm; bottom: 10mm; }
+            .page-footer img { height: 38px; }
+          </style>
+        </head>
+        <body>
+          <div class="document">
+            <section class="page">
+              <div class="page-header">
+                <img src="${EXPORT_LOGO_DATA_URL}" alt="Revo Capital logo" />
+                <div>
+                  <h1>Revo Capital – RA maximisation export</h1>
+                  <p style="margin:4px 0 0 0;font-size:12px;">Inputs summary (fits A4)</p>
+                </div>
+              </div>
+              <div class="section-block">
+                <h2>Inputs</h2>
+                <div class="inputs-grid">
+                  ${groupedInputs.map(renderInputGroup).join("")}
+                </div>
+              </div>
+            </section>
+
+            <section class="page">
+              ${footerLogo}
+              <div class="page-body">
+                <div class="section-block">
+                  <h2>Outputs</h2>
+                  <div class="output-grid">
+                    ${chunkOutputs(outputsSection.rows).map(renderOutputList).join("")}
+                  </div>
+                  ${chartBlock}
+                </div>
+              </div>
+            </section>
+
+            <section class="page">
+              ${footerLogo}
+              ${renderTableSection(preSection)}
+            </section>
+
+            <section class="page">
+              ${footerLogo}
+              ${renderTableSection(postSection)}
+            </section>
+          </div>
+        </body>
+      </html>
     `;
   };
-
   const exportExcel = () => {
     const html = buildHtmlForExport(getCapitalChartDataUrl());
     downloadBlob(
@@ -687,23 +869,7 @@ const RetirementCalculator = () => {
 
   const exportPdf = () => {
     const html = buildHtmlForExport(getCapitalChartDataUrl());
-    const printableHtml = `
-      <html>
-        <head>
-          <title>Revo Capital export</title>
-          <style>
-            @media print {
-              body { margin: 16px; }
-              section { page-break-inside: avoid; }
-              img { page-break-inside: avoid; }
-            }
-          </style>
-        </head>
-        <body>${html}</body>
-      </html>
-    `;
-
-    const blob = new Blob([printableHtml], { type: "text/html" });
+    const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const iframe = document.createElement("iframe");
     iframe.style.position = "fixed";
