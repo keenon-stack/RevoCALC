@@ -12,7 +12,6 @@ import {
 } from "recharts";
 import { uiClasses } from "./uiTheme";
 import { useRetirementProjection } from "./useRetirementProjection";
-import { EXPORT_LOGO_DATA_URL } from "./assets/exportLogoData";
 
 // --- formatting helpers (UI only) ---
 
@@ -52,6 +51,9 @@ const presets = {
 };
 
 const TFSA_MONTHLY_CAP = 3000;
+
+const getExportLogoUrl = () =>
+  new URL("/Revo_Cap_Logo.png", window.location.origin).toString();
 
 const defaultFormValues = {
   currentAge: "30",
@@ -640,6 +642,8 @@ const RetirementCalculator = () => {
     const preSection = sections[3];
     const postSection = sections[4];
 
+    const logoUrl = getExportLogoUrl();
+
     const groupedInputs = [
       {
         title: "Ages",
@@ -773,7 +777,7 @@ const RetirementCalculator = () => {
         </div>`
       : "";
 
-    const footerLogo = `<div class="page-footer"><img src="${EXPORT_LOGO_DATA_URL}" alt="Revo Capital logo" /></div>`;
+    const footerLogo = `<div class="page-footer"><img src="${logoUrl}" alt="Revo Capital logo" /></div>`;
 
     return `
       <html>
@@ -817,7 +821,7 @@ const RetirementCalculator = () => {
           <div class="document">
             <section class="page">
               <div class="page-header">
-                <img src="${EXPORT_LOGO_DATA_URL}" alt="Revo Capital logo" />
+                <img src="${logoUrl}" alt="Revo Capital logo" />
                 <div>
                   <h1>Revo Capital – RA maximisation export</h1>
                   <p style="margin:4px 0 0 0;font-size:12px;">Inputs summary (fits A4)</p>
