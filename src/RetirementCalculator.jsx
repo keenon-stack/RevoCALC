@@ -279,12 +279,46 @@ const RetirementCalculator = () => {
   const [showAdvancedTax, setShowAdvancedTax] = useState(false);
 
   const [exportFormat, setExportFormat] = useState("pdf");
+  const [logoDataUrl, setLogoDataUrl] = useState(null);
 
   const capitalChartRef = useRef(null);
 
   // bottom section: 3 tabs: "CAPITAL", "PRE", "POST"
   const [activeProjectionTab, setActiveProjectionTab] =
     useState("CAPITAL");
+
+  useEffect(() => {
+    let isCancelled = false;
+    const controller = new AbortController();
+
+    const loadLogo = async () => {
+      try {
+        const response = await fetch(getExportLogoUrl(), {
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (!isCancelled) {
+            setLogoDataUrl(typeof reader.result === "string" ? reader.result : null);
+          }
+        };
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        if (!isCancelled) {
+          setLogoDataUrl(null);
+        }
+      }
+    };
+
+    loadLogo();
+
+    return () => {
+      isCancelled = true;
+      controller.abort();
+    };
+  }, []);
 
   // --- calculations via hook (all maths lives in useRetirementProjection) ---
 
@@ -582,17 +616,21 @@ const RetirementCalculator = () => {
     return col.formatter ? col.formatter(value) : String(value);
   };
 
-  const getCapitalChartDataUrl = () => {
+  const getCapitalChartMarkup = () => {
     const svgNode = capitalChartRef.current?.querySelector("svg");
     if (!svgNode) return null;
     const clonedSvg = svgNode.cloneNode(true);
+    const bounds = svgNode.getBoundingClientRect();
+    if (bounds.width && !clonedSvg.getAttribute("width")) {
+      clonedSvg.setAttribute("width", `${bounds.width}`);
+    }
+    if (bounds.height && !clonedSvg.getAttribute("height")) {
+      clonedSvg.setAttribute("height", `${bounds.height}`);
+    }
     if (!clonedSvg.getAttribute("xmlns")) {
       clonedSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
     }
-    const serializer = new XMLSerializer();
-    const svgString = serializer.serializeToString(clonedSvg);
-    const encoded = window.btoa(unescape(encodeURIComponent(svgString)));
-    return `data:image/svg+xml;base64,${encoded}`;
+    return clonedSvg.outerHTML;
   };
 
   const downloadBlob = (content, filename, type) => {
@@ -636,13 +674,13 @@ const RetirementCalculator = () => {
     downloadBlob(lines.join("\n"), "revo-retirement-export.csv", "text/csv;charset=utf-8;");
   };
 
-  const buildHtmlForExport = (chartDataUrl) => {
+  const buildHtmlForExport = (chartMarkup) => {
     const sections = buildExportSections();
     const outputsSection = sections[1];
     const preSection = sections[3];
     const postSection = sections[4];
 
-    const logoUrl = getExportLogoUrl();
+    const logoUrl = logoDataUrl || getExportLogoUrl();
 
     const groupedInputs = [
       {
@@ -768,16 +806,14 @@ const RetirementCalculator = () => {
       `;
     };
 
-    const chartBlock = chartDataUrl
+    const chartBlock = chartMarkup
       ? `<div class="section-block chart-block">
           <h3>Capital trajectory</h3>
           <div class="chart-frame">
-            <img src="${chartDataUrl}" alt="Capital trajectory" />
+            ${chartMarkup}
           </div>
         </div>`
       : "";
-
-    const footerLogo = `<div class="page-footer"><img src="${logoUrl}" alt="Revo Capital logo" /></div>`;
 
     return `
       <html>
@@ -808,13 +844,11 @@ const RetirementCalculator = () => {
             .output-list li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 8px; border: 1px solid #cde5d7; border-radius: 6px; background: #ffffff; font-size: 12px; }
             .chart-block h3 { margin-bottom: 6px; }
             .chart-frame { border: 1px solid #003c32; border-radius: 8px; padding: 8px; background: #ffffff; }
-            .chart-frame img { width: 100%; max-height: 320px; object-fit: contain; }
+            .chart-frame svg { width: 100%; height: auto; }
             table { width: 100%; border-collapse: collapse; font-size: 11px; }
             th, td { border: 1px solid #003c32; padding: 6px; text-align: right; }
             th { background: #e0f0e5; text-align: left; }
             .table-section { page-break-inside: avoid; }
-            .page-footer { position: absolute; right: 12mm; bottom: 10mm; }
-            .page-footer img { height: 38px; }
           </style>
         </head>
         <body>
@@ -836,7 +870,6 @@ const RetirementCalculator = () => {
             </section>
 
             <section class="page">
-              ${footerLogo}
               <div class="page-body">
                 <div class="section-block">
                   <h2>Outputs</h2>
@@ -849,12 +882,10 @@ const RetirementCalculator = () => {
             </section>
 
             <section class="page">
-              ${footerLogo}
               ${renderTableSection(preSection)}
             </section>
 
             <section class="page">
-              ${footerLogo}
               ${renderTableSection(postSection)}
             </section>
           </div>
@@ -863,7 +894,7 @@ const RetirementCalculator = () => {
     `;
   };
   const exportExcel = () => {
-    const html = buildHtmlForExport(getCapitalChartDataUrl());
+    const html = buildHtmlForExport(getCapitalChartMarkup());
     downloadBlob(
       html,
       "revo-retirement-export.xls",
@@ -872,7 +903,7 @@ const RetirementCalculator = () => {
   };
 
   const exportPdf = () => {
-    const html = buildHtmlForExport(getCapitalChartDataUrl());
+    const html = buildHtmlForExport(getCapitalChartMarkup());
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const iframe = document.createElement("iframe");
