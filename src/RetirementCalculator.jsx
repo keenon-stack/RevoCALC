@@ -926,7 +926,7 @@ const RetirementCalculator = () => {
             <h2 className={sectionTitleClasses}>
               Client profile &amp; targets
             </h2>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <p className="col-span-2 mt-1 text-sm font-semibold uppercase tracking-wide text-[#9ad0b0]">
                 Ages
               </p>
@@ -1223,7 +1223,7 @@ const RetirementCalculator = () => {
             >
               Contribution split &amp; TFSA
             </h2>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <label
                 className="flex flex-col gap-1"
                 htmlFor="gross-income"
@@ -1343,7 +1343,7 @@ const RetirementCalculator = () => {
               <span>{showAdvancedTax ? "▲" : "▼"}</span>
             </button>
             {showAdvancedTax && (
-              <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
+              <div className="mt-2 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                 <label className="flex flex-col gap-1">
                   <span className={labelTextClasses}>
                     Tax on drawdowns
@@ -1455,7 +1455,7 @@ const RetirementCalculator = () => {
                 <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-[#9ad0b0]">
                   Capital at retirement
                 </p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
                     <div className={keyMetricLabelClasses}>
                       Target net income in year 1 (future,
@@ -1541,7 +1541,7 @@ const RetirementCalculator = () => {
                 <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-[#9ad0b0]">
                   Drawdown
                 </p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
                     <div className={keyMetricLabelClasses}>
                       Year-1 drawdown % of capital
@@ -1572,7 +1572,7 @@ const RetirementCalculator = () => {
                 <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-[#9ad0b0]">
                   Contributions &amp; tax savings
                 </p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
                     <div className={keyMetricLabelClasses}>
                       Total contributions until retirement
@@ -1602,7 +1602,7 @@ const RetirementCalculator = () => {
             >
               RA allowance snapshot
             </h2>
-            <div className="grid grid-cols-3 gap-3 text-sm">
+            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
               <div className="space-y-1">
                 <div className={keyMetricLabelClasses}>
                   Effective tax rate now
@@ -1738,7 +1738,7 @@ const RetirementCalculator = () => {
                 assumptions may need adjustment.
               </p>
             )}
-            <div className="mt-2 h-[360px] rounded-2xl border border-[#bedcbe]">
+            <div className="mt-2 h-[260px] rounded-2xl border border-[#bedcbe] md:h-[360px]">
               {renderCapitalChart(true)}
             </div>
           </div>
