@@ -243,7 +243,6 @@ const useCalculatorForm = () => {
 const RetirementCalculator = () => {
   const {
     values,
-    numericValues,
     sanitizedNumbers,
     errors,
     handlers,
