@@ -52,26 +52,6 @@ const presets = {
 
 const TFSA_MONTHLY_CAP = 3000;
 
-const EMBEDDED_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 260" role="img" aria-label="Revo Capital logo">
-  <style>
-    .fill-primary { fill: #009e8f; }
-    .text-primary { font-family: 'Arial Black', 'Arial', sans-serif; font-weight: 800; }
-  </style>
-  <g class="fill-primary">
-    <rect x="20" y="60" width="60" height="140" rx="12" />
-    <rect x="100" y="60" width="60" height="140" rx="12" />
-    <rect x="20" y="60" width="140" height="60" rx="12" />
-    <rect x="20" y="140" width="140" height="60" rx="12" />
-    <circle cx="220" cy="90" r="25" />
-  </g>
-  <text x="280" y="170" class="text-primary" font-size="140" fill="#009e8f">REVO</text>
-  <text x="760" y="170" font-family="Arial, sans-serif" font-size="120" font-weight="700" fill="#009e8f">Capital</text>
-</svg>`;
-
-const EMBEDDED_LOGO_DATA_URL = `data:image/svg+xml,${encodeURIComponent(
-  EMBEDDED_LOGO_SVG
-)}`;
-
 const defaultFormValues = {
   currentAge: "30",
   retireAge: "65",
@@ -296,8 +276,6 @@ const RetirementCalculator = () => {
   const [showAdvancedTax, setShowAdvancedTax] = useState(false);
 
   const [exportFormat, setExportFormat] = useState("pdf");
-  const logoDataUrl = EMBEDDED_LOGO_DATA_URL;
-
   const capitalChartRef = useRef(null);
 
   // bottom section: 3 tabs: "CAPITAL", "PRE", "POST"
@@ -615,9 +593,7 @@ const RetirementCalculator = () => {
       clonedSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
     }
     const serialized = new XMLSerializer().serializeToString(clonedSvg);
-    const encoded = window.btoa(unescape(encodeURIComponent(serialized)));
-    const dataUrl = `data:image/svg+xml;base64,${encoded}`;
-    return `<img src="${dataUrl}" alt="Capital trajectory" style="width:100%;height:auto;" />`;
+    return serialized;
   };
 
   const downloadBlob = (content, filename, type) => {
@@ -663,11 +639,8 @@ const RetirementCalculator = () => {
 
   const buildHtmlForExport = (chartMarkup) => {
     const sections = buildExportSections();
-    const outputsSection = sections[1];
     const preSection = sections[3];
     const postSection = sections[4];
-
-    const logoUrl = logoDataUrl;
 
     const groupedInputs = [
       {
@@ -753,12 +726,7 @@ const RetirementCalculator = () => {
       return `<div class="input-card"><h3>${group.title}</h3>${rows}</div>`;
     };
 
-    const chunkOutputs = (rows) => {
-      const midpoint = Math.ceil(rows.length / 2);
-      return [rows.slice(0, midpoint), rows.slice(midpoint)];
-    };
-
-    const renderOutputList = (rows) =>
+    const renderMetricList = (rows) =>
       `<ul class="output-list">${rows
         .map(
           (row) =>
@@ -768,6 +736,19 @@ const RetirementCalculator = () => {
             )}</span></li>`
         )
         .join("")}</ul>`;
+
+    const renderCapitalMiniTable = (rows) => {
+      const cells = rows
+        .map(
+          (row) =>
+            `<tr><td class="mini-label">${row.label}</td><td class="mini-value">${formatExportValue(
+              { formatter: (val) => val },
+              row.value
+            )}</td></tr>`
+        )
+        .join("");
+      return `<table class="mini-table"><tbody>${cells}</tbody></table>`;
+    };
 
     const renderTableSection = (section) => {
       const header = section.columns
@@ -792,6 +773,53 @@ const RetirementCalculator = () => {
         </div>
       `;
     };
+
+    const nowActions = [
+      {
+        label: "Required monthly contribution",
+        value: formatCurrency(outputs.requiredMonthlyContribution),
+      },
+      { label: "Max RA contribution p.a.", value: formatCurrency(outputs.maxRaContrib) },
+      { label: "RA tax saving on contribution", value: formatCurrency(outputs.taxSaving) },
+      { label: "Effective tax rate now", value: formatPercent(outputs.effectiveTaxRateNow) },
+      {
+        label: "Total contributions until retirement",
+        value: formatCurrency(outputs.totalContributionsAtRetirement),
+      },
+    ];
+
+    const capitalMiniTable = [
+      { label: "Total capital", value: formatCurrency(outputs.totalCapitalAtRet) },
+      { label: "Taxable capital", value: formatCurrency(outputs.taxableCapitalAtRet) },
+      { label: "TFSA capital", value: formatCurrency(outputs.tfsaCapitalAtRet) },
+    ];
+
+    const capitalMeta = [
+      {
+        label: "Present value of required capital",
+        value: formatCurrency(outputs.presentValueRequiredCapital),
+      },
+      {
+        label: "Year-1 drawdown % of capital",
+        value: formatPercent(outputs.year1DrawdownPct),
+      },
+      {
+        label: "Effective tax rate on year-1 drawdown",
+        value: formatPercent(outputs.year1EffectiveTaxRate),
+      },
+      { label: "Capital exhaustion age", value: outputs.exhaustionAge },
+    ];
+
+    const taxBenefit = [
+      {
+        label: "Total RA tax saving until retirement",
+        value: formatCurrency(outputs.totalTaxSavingsAtRetirement),
+      },
+      {
+        label: "Total contributions until retirement",
+        value: formatCurrency(outputs.totalContributionsAtRetirement),
+      },
+    ];
 
     const chartBlock = chartMarkup
       ? `<div class="section-block chart-block">
@@ -818,7 +846,6 @@ const RetirementCalculator = () => {
             .page:last-of-type { page-break-after: auto; }
             .page-body { display: flex; flex-direction: column; gap: 10px; }
             .page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
-            .page-header img { height: 60px; }
             .section-block { background: #ffffff; border: 1px solid #003c32; border-radius: 8px; padding: 12px; }
             .section-block + .section-block { margin-top: 10px; }
             .inputs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
@@ -826,9 +853,14 @@ const RetirementCalculator = () => {
             .pill { display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; background: #ffffff; border: 1px solid #cde5d7; border-radius: 6px; margin-top: 4px; font-size: 12px; }
             .pill-label { font-weight: 700; font-size: 12px; }
             .pill-value { font-size: 12px; text-align: right; }
-            .output-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+            .output-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+            .output-card { border: 1px solid #cde5d7; border-radius: 8px; padding: 10px; background: #f7fbf8; display: flex; flex-direction: column; gap: 8px; min-height: 140px; }
             .output-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr; gap: 6px; }
             .output-list li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 8px; border: 1px solid #cde5d7; border-radius: 6px; background: #ffffff; font-size: 12px; }
+            .mini-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            .mini-table td { padding: 6px 8px; border: 1px solid #cde5d7; }
+            .mini-label { font-weight: 700; text-align: left; }
+            .mini-value { text-align: right; }
             .chart-block h3 { margin-bottom: 6px; }
             .chart-frame { border: 1px solid #003c32; border-radius: 8px; padding: 8px; background: #ffffff; }
             .chart-frame svg, .chart-frame img { width: 100%; height: auto; }
@@ -842,7 +874,6 @@ const RetirementCalculator = () => {
           <div class="document">
             <section class="page">
               <div class="page-header">
-                <img src="${logoUrl}" alt="Revo Capital logo" />
                 <div>
                   <h1>Revo Capital – RA maximisation export</h1>
                   <p style="margin:4px 0 0 0;font-size:12px;">Inputs summary (fits A4)</p>
@@ -860,8 +891,20 @@ const RetirementCalculator = () => {
               <div class="page-body">
                 <div class="section-block">
                   <h2>Outputs</h2>
-                  <div class="output-grid">
-                    ${chunkOutputs(outputsSection.rows).map(renderOutputList).join("")}
+                  <div class="output-layout">
+                    <div class="output-card">
+                      <h3>What you need to do now</h3>
+                      ${renderMetricList(nowActions)}
+                    </div>
+                    <div class="output-card">
+                      <h3>Capital at retirement (age ${values.retireAge || 65})</h3>
+                      ${renderCapitalMiniTable(capitalMiniTable)}
+                      ${renderMetricList(capitalMeta)}
+                    </div>
+                    <div class="output-card">
+                      <h3>Tax benefit over saving period</h3>
+                      ${renderMetricList(taxBenefit)}
+                    </div>
                   </div>
                   ${chartBlock}
                 </div>
