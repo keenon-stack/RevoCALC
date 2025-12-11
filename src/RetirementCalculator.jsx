@@ -340,12 +340,6 @@ const RetirementCalculator = () => {
     }
   );
 
-  const raUsagePct =
-    outputs.maxRaContrib > 0
-      ? (outputs.requiredMonthlyContribution * 12) /
-          outputs.maxRaContrib
-      : 0;
-
   const hasExportData =
     (outputs.preTimeline || []).length > 0 ||
     (outputs.postTimeline || []).length > 0 ||
@@ -578,7 +572,7 @@ const RetirementCalculator = () => {
     return col.formatter ? col.formatter(value) : String(value);
   };
 
-  const getCapitalChartMarkup = () => {
+  const getCapitalChartDataUrl = () => {
     const svgNode = capitalChartRef.current?.querySelector("svg");
     if (!svgNode) return null;
     const clonedSvg = svgNode.cloneNode(true);
@@ -593,7 +587,13 @@ const RetirementCalculator = () => {
       clonedSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
     }
     const serialized = new XMLSerializer().serializeToString(clonedSvg);
-    return serialized;
+    try {
+      const encoded = window.btoa(unescape(encodeURIComponent(serialized)));
+      return `data:image/svg+xml;base64,${encoded}`;
+    } catch (error) {
+      console.error("Failed to encode chart SVG", error);
+      return null;
+    }
   };
 
   const downloadBlob = (content, filename, type) => {
@@ -637,7 +637,7 @@ const RetirementCalculator = () => {
     downloadBlob(lines.join("\n"), "revo-retirement-export.csv", "text/csv;charset=utf-8;");
   };
 
-  const buildHtmlForExport = (chartMarkup) => {
+  const buildHtmlForExport = (chartDataUrl) => {
     const sections = buildExportSections();
     const preSection = sections[3];
     const postSection = sections[4];
@@ -821,11 +821,11 @@ const RetirementCalculator = () => {
       },
     ];
 
-    const chartBlock = chartMarkup
+    const chartBlock = chartDataUrl
       ? `<div class="section-block chart-block">
           <h3>Capital trajectory</h3>
           <div class="chart-frame">
-            ${chartMarkup}
+            <img src="${chartDataUrl}" alt="Capital trajectory" />
           </div>
         </div>`
       : "";
@@ -854,16 +854,18 @@ const RetirementCalculator = () => {
             .pill-label { font-weight: 700; font-size: 12px; }
             .pill-value { font-size: 12px; text-align: right; }
             .output-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
-            .output-card { border: 1px solid #cde5d7; border-radius: 8px; padding: 10px; background: #f7fbf8; display: flex; flex-direction: column; gap: 8px; min-height: 140px; }
+            .output-card { border: 1px solid #cde5d7; border-radius: 8px; padding: 10px; background: #f7fbf8; display: flex; flex-direction: column; gap: 8px; min-height: 120px; }
             .output-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr; gap: 6px; }
             .output-list li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 8px; border: 1px solid #cde5d7; border-radius: 6px; background: #ffffff; font-size: 12px; }
             .mini-table { width: 100%; border-collapse: collapse; font-size: 12px; }
             .mini-table td { padding: 6px 8px; border: 1px solid #cde5d7; }
             .mini-label { font-weight: 700; text-align: left; }
             .mini-value { text-align: right; }
+            .chart-block { page-break-inside: avoid; }
             .chart-block h3 { margin-bottom: 6px; }
             .chart-frame { border: 1px solid #003c32; border-radius: 8px; padding: 8px; background: #ffffff; }
-            .chart-frame svg, .chart-frame img { width: 100%; height: auto; }
+            .chart-frame { max-height: 240px; }
+            .chart-frame img { width: 100%; height: 220px; object-fit: contain; display: block; }
             table { width: 100%; border-collapse: collapse; font-size: 11px; }
             th, td { border: 1px solid #003c32; padding: 6px; text-align: right; }
             th { background: #e0f0e5; text-align: left; }
@@ -924,7 +926,7 @@ const RetirementCalculator = () => {
     `;
   };
   const exportExcel = () => {
-    const html = buildHtmlForExport(getCapitalChartMarkup());
+    const html = buildHtmlForExport(getCapitalChartDataUrl());
     downloadBlob(
       html,
       "revo-retirement-export.xls",
@@ -933,7 +935,7 @@ const RetirementCalculator = () => {
   };
 
   const exportPdf = () => {
-    const html = buildHtmlForExport(getCapitalChartMarkup());
+    const html = buildHtmlForExport(getCapitalChartDataUrl());
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const iframe = document.createElement("iframe");
@@ -1827,70 +1829,6 @@ const RetirementCalculator = () => {
               </div>
             </div>
 
-            <h2
-              className={`${sectionTitleClasses} mt-4`}
-            >
-              RA allowance snapshot
-            </h2>
-            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
-              <div className="space-y-1">
-                <div className={keyMetricLabelClasses}>
-                  Effective tax rate now
-                </div>
-                <div
-                  className={`${keyMetricValueClasses} text-base`}
-                >
-                  {formatPercent(
-                    outputs.effectiveTaxRateNow
-                  )}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className={keyMetricLabelClasses}>
-                  Max RA contribution p.a.
-                </div>
-                <div
-                  className={`${keyMetricValueClasses} text-base`}
-                >
-                  {formatCurrency(outputs.maxRaContrib)}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className={keyMetricLabelClasses}>
-                  Approximate tax saving p.a.
-                </div>
-                <div
-                  className={`${keyMetricValueClasses} text-base`}
-                >
-                  {formatCurrency(outputs.taxSaving)}
-                </div>
-              </div>
-            </div>
-
-            {/* RA utilisation bar */}
-            <div className="mt-3">
-              <div className="mb-1 flex justify-between text-xs text-[#bedcbe]">
-                <span>
-                  RA allowance utilisation (approx)
-                </span>
-                <span>
-                  {formatPercent(
-                    Math.min(1, raUsagePct || 0)
-                  )}
-                </span>
-              </div>
-              <div className="h-1.5 w-full rounded-full bg-[#bedcbe]/30">
-                <div
-                  className="h-1.5 rounded-full bg-[#bedcbe]"
-                  style={{
-                    width: `${Math.min(
-                      100,
-                      Math.max(0, raUsagePct * 100)
-                    )}%`,
-                  }}
-                />
-              </div>
-            </div>
           </section>
 
           {/* END 2-COLUMN GRID */}
@@ -2304,7 +2242,7 @@ const RetirementCalculator = () => {
       </div>
       <div
         aria-hidden="true"
-        className="absolute -left-[99999px] top-0 h-[360px] w-[1200px]"
+        className="absolute -left-[99999px] top-0 h-[240px] w-[900px]"
         ref={capitalChartRef}
       >
         {renderCapitalChart(false)}
