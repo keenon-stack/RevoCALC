@@ -52,8 +52,25 @@ const presets = {
 
 const TFSA_MONTHLY_CAP = 3000;
 
-const getExportLogoUrl = () =>
-  new URL("/Revo_Cap_Logo.png", window.location.origin).toString();
+const EMBEDDED_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 260" role="img" aria-label="Revo Capital logo">
+  <style>
+    .fill-primary { fill: #009e8f; }
+    .text-primary { font-family: 'Arial Black', 'Arial', sans-serif; font-weight: 800; }
+  </style>
+  <g class="fill-primary">
+    <rect x="20" y="60" width="60" height="140" rx="12" />
+    <rect x="100" y="60" width="60" height="140" rx="12" />
+    <rect x="20" y="60" width="140" height="60" rx="12" />
+    <rect x="20" y="140" width="140" height="60" rx="12" />
+    <circle cx="220" cy="90" r="25" />
+  </g>
+  <text x="280" y="170" class="text-primary" font-size="140" fill="#009e8f">REVO</text>
+  <text x="760" y="170" font-family="Arial, sans-serif" font-size="120" font-weight="700" fill="#009e8f">Capital</text>
+</svg>`;
+
+const EMBEDDED_LOGO_DATA_URL = `data:image/svg+xml,${encodeURIComponent(
+  EMBEDDED_LOGO_SVG
+)}`;
 
 const defaultFormValues = {
   currentAge: "30",
@@ -279,46 +296,13 @@ const RetirementCalculator = () => {
   const [showAdvancedTax, setShowAdvancedTax] = useState(false);
 
   const [exportFormat, setExportFormat] = useState("pdf");
-  const [logoDataUrl, setLogoDataUrl] = useState(null);
+  const logoDataUrl = EMBEDDED_LOGO_DATA_URL;
 
   const capitalChartRef = useRef(null);
 
   // bottom section: 3 tabs: "CAPITAL", "PRE", "POST"
   const [activeProjectionTab, setActiveProjectionTab] =
     useState("CAPITAL");
-
-  useEffect(() => {
-    let isCancelled = false;
-    const controller = new AbortController();
-
-    const loadLogo = async () => {
-      try {
-        const response = await fetch(getExportLogoUrl(), {
-          signal: controller.signal,
-        });
-        if (!response.ok) return;
-        const blob = await response.blob();
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (!isCancelled) {
-            setLogoDataUrl(typeof reader.result === "string" ? reader.result : null);
-          }
-        };
-        reader.readAsDataURL(blob);
-      } catch (error) {
-        if (!isCancelled) {
-          setLogoDataUrl(null);
-        }
-      }
-    };
-
-    loadLogo();
-
-    return () => {
-      isCancelled = true;
-      controller.abort();
-    };
-  }, []);
 
   // --- calculations via hook (all maths lives in useRetirementProjection) ---
 
@@ -630,7 +614,10 @@ const RetirementCalculator = () => {
     if (!clonedSvg.getAttribute("xmlns")) {
       clonedSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
     }
-    return clonedSvg.outerHTML;
+    const serialized = new XMLSerializer().serializeToString(clonedSvg);
+    const encoded = window.btoa(unescape(encodeURIComponent(serialized)));
+    const dataUrl = `data:image/svg+xml;base64,${encoded}`;
+    return `<img src="${dataUrl}" alt="Capital trajectory" style="width:100%;height:auto;" />`;
   };
 
   const downloadBlob = (content, filename, type) => {
@@ -680,7 +667,7 @@ const RetirementCalculator = () => {
     const preSection = sections[3];
     const postSection = sections[4];
 
-    const logoUrl = logoDataUrl || getExportLogoUrl();
+    const logoUrl = logoDataUrl;
 
     const groupedInputs = [
       {
@@ -844,7 +831,7 @@ const RetirementCalculator = () => {
             .output-list li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 8px; border: 1px solid #cde5d7; border-radius: 6px; background: #ffffff; font-size: 12px; }
             .chart-block h3 { margin-bottom: 6px; }
             .chart-frame { border: 1px solid #003c32; border-radius: 8px; padding: 8px; background: #ffffff; }
-            .chart-frame svg { width: 100%; height: auto; }
+            .chart-frame svg, .chart-frame img { width: 100%; height: auto; }
             table { width: 100%; border-collapse: collapse; font-size: 11px; }
             th, td { border: 1px solid #003c32; padding: 6px; text-align: right; }
             th { background: #e0f0e5; text-align: left; }
