@@ -64,6 +64,7 @@ const defaultFormValues = {
   postReturn: "10",
   inflation: "5",
   annualIncrease: "0",
+  includeTfsa: false,
   grossIncome: "720000",
   incomeGrowthMode: "INFLATION",
   incomeGrowthRate: "0",
@@ -130,13 +131,19 @@ const useCalculatorForm = () => {
 
     const positive = (value) => (Number.isFinite(value) && value > 0 ? value : 0);
 
+    const tfsaEnabled = values.includeTfsa ?? true;
+
     return {
       currentAge: nonNegative(numericValues.currentAge),
       retireAge: nonNegative(numericValues.retireAge),
       lifeExpectancy: positive(numericValues.lifeExpectancy),
       initialCapital: nonNegative(numericValues.initialCapital),
-      initialTfsaBalance: nonNegative(numericValues.initialTfsaBalance),
-      tfsaContribToDate: nonNegative(numericValues.tfsaContribToDate),
+      initialTfsaBalance: tfsaEnabled
+        ? nonNegative(numericValues.initialTfsaBalance)
+        : 0,
+      tfsaContribToDate: tfsaEnabled
+        ? nonNegative(numericValues.tfsaContribToDate)
+        : 0,
       targetNetToday: nonNegative(numericValues.targetNetToday),
       preReturn: nonNegative(numericValues.preReturn),
       postReturn: nonNegative(numericValues.postReturn),
@@ -144,10 +151,12 @@ const useCalculatorForm = () => {
       annualIncrease: nonNegative(numericValues.annualIncrease),
       grossIncome: nonNegative(numericValues.grossIncome),
       incomeGrowthRate: nonNegative(numericValues.incomeGrowthRate),
-      tfsaMonthly: cappedNonNegative(numericValues.tfsaMonthly, TFSA_MONTHLY_CAP),
+      tfsaMonthly: tfsaEnabled
+        ? cappedNonNegative(numericValues.tfsaMonthly, TFSA_MONTHLY_CAP)
+        : 0,
       flatTaxRate: nonNegative(numericValues.flatTaxRate),
     };
-  }, [numericValues]);
+  }, [numericValues, values.includeTfsa]);
 
   useEffect(() => {
     const nextErrors = {};
@@ -177,8 +186,10 @@ const useCalculatorForm = () => {
     });
 
     validateNumber("initialCapital", "Initial capital");
-    validateNumber("initialTfsaBalance", "Existing TFSA balance");
-    validateNumber("tfsaContribToDate", "TFSA contributions to date");
+    if (values.includeTfsa) {
+      validateNumber("initialTfsaBalance", "Existing TFSA balance");
+      validateNumber("tfsaContribToDate", "TFSA contributions to date");
+    }
     validateNumber("targetNetToday", "Target net income");
     validateNumber("preReturn", "Pre-retirement return");
     validateNumber("postReturn", "Post-retirement return");
@@ -188,10 +199,12 @@ const useCalculatorForm = () => {
     if (values.incomeGrowthMode === "CUSTOM") {
       validateNumber("incomeGrowthRate", "Income growth rate");
     }
-    const tfsaValid = validateNumber("tfsaMonthly", "TFSA contribution");
-    if (tfsaValid && numericValues.tfsaMonthly > TFSA_MONTHLY_CAP) {
-      nextErrors.tfsaMonthly =
-        "TFSA contribution is capped at R3,000 per month (R36,000 p.a.).";
+    if (values.includeTfsa) {
+      const tfsaValid = validateNumber("tfsaMonthly", "TFSA contribution");
+      if (tfsaValid && numericValues.tfsaMonthly > TFSA_MONTHLY_CAP) {
+        nextErrors.tfsaMonthly =
+          "TFSA contribution is capped at R3,000 per month (R36,000 p.a.).";
+      }
     }
     validateNumber("flatTaxRate", "Flat tax rate");
 
@@ -213,7 +226,7 @@ const useCalculatorForm = () => {
     }
 
     setErrors(nextErrors);
-  }, [numericValues, values.incomeGrowthMode]);
+  }, [numericValues, values.includeTfsa, values.incomeGrowthMode]);
 
   const handleNumberChange = (field) => (e) =>
     dispatch({ type: "update", field, value: e.target.value });
@@ -262,6 +275,7 @@ const RetirementCalculator = () => {
     postReturn,
     inflation,
     annualIncrease,
+    includeTfsa,
     grossIncome,
     incomeGrowthMode,
     incomeGrowthRate,
@@ -386,12 +400,20 @@ const RetirementCalculator = () => {
         value: formatCurrency(Number(initialCapital || 0)),
       },
       {
+        label: "Contribute to TFSA",
+        value: includeTfsa ? "Yes" : "No",
+      },
+      {
         label: "Initial TFSA balance",
-        value: formatCurrency(Number(initialTfsaBalance || 0)),
+        value: includeTfsa
+          ? formatCurrency(Number(initialTfsaBalance || 0))
+          : "N/A (TFSA disabled)",
       },
       {
         label: "TFSA contributions to date",
-        value: formatCurrency(Number(tfsaContribToDate || 0)),
+        value: includeTfsa
+          ? formatCurrency(Number(tfsaContribToDate || 0))
+          : "N/A (TFSA disabled)",
       },
       {
         label: "Target net income today (per month)",
@@ -424,7 +446,9 @@ const RetirementCalculator = () => {
       },
       {
         label: "TFSA contribution (per month)",
-        value: formatCurrency(Number(tfsaMonthly || 0)),
+        value: includeTfsa
+          ? formatCurrency(Number(tfsaMonthly || 0))
+          : "Not contributing",
       },
       {
         label: "Depletion order",
@@ -657,11 +681,15 @@ const RetirementCalculator = () => {
           { label: "Initial capital", value: formatCurrency(sanitizedNumbers.initialCapital) },
           {
             label: "TFSA contributions to date",
-            value: formatCurrency(sanitizedNumbers.tfsaContribToDate),
+            value: includeTfsa
+              ? formatCurrency(sanitizedNumbers.tfsaContribToDate)
+              : "TFSA disabled",
           },
           {
             label: "Existing TFSA balance",
-            value: formatCurrency(sanitizedNumbers.initialTfsaBalance),
+            value: includeTfsa
+              ? formatCurrency(sanitizedNumbers.initialTfsaBalance)
+              : "TFSA disabled",
           },
         ],
       },
@@ -698,7 +726,12 @@ const RetirementCalculator = () => {
             value: formatPercent(Number(sanitizedNumbers.annualIncrease) / 100),
           },
           { label: "Gross income", value: formatCurrency(sanitizedNumbers.grossIncome) },
-          { label: "TFSA contribution (per month)", value: formatCurrency(sanitizedNumbers.tfsaMonthly) },
+          {
+            label: "TFSA contribution (per month)",
+            value: includeTfsa
+              ? formatCurrency(sanitizedNumbers.tfsaMonthly)
+              : "Not contributing",
+          },
           {
             label: "Depletion order",
             value: values.depleteOrder === "TFSA_FIRST" ? "TFSA first" : "RA first",
@@ -1150,6 +1183,15 @@ const RetirementCalculator = () => {
               Reinvest RA tax saving annually as a lump sum
             </span>
           </label>
+          <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#003c32]">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-[#003c32] text-[#003c32] focus:ring-[#003c32]"
+              checked={includeTfsa}
+              onChange={handlers.checkbox("includeTfsa")}
+            />
+            <span>Tax Free Savings Utilisation</span>
+          </label>
         </header>
 
         <div className="grid gap-6 md:grid-cols-2">
@@ -1246,48 +1288,88 @@ const RetirementCalculator = () => {
                   </p>
                 )}
               </label>
-              <label
-                className="flex flex-col gap-1"
-                htmlFor="tfsa-to-date"
-              >
-                <span className={labelTextClasses}>
-                  TFSA contributions to date (lifetime)
-                </span>
-                <input
-                  id="tfsa-to-date"
-                  className={inputClasses}
-                  value={tfsaContribToDate}
-                  onChange={handlers.number("tfsaContribToDate")}
-                  type="number"
-                  min={0}
-                />
-                {errors.tfsaContribToDate && (
-                  <p className="text-[11px] text-[#ffb3b3]">
-                    {errors.tfsaContribToDate}
+              <p className="col-span-2 mt-2 text-sm font-semibold uppercase tracking-wide text-[#9ad0b0]">
+                TFSA contributions
+              </p>
+              <div className="col-span-2">
+                {includeTfsa ? (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label
+                      className="flex flex-col gap-1"
+                      htmlFor="tfsa-to-date"
+                    >
+                      <span className={labelTextClasses}>
+                        TFSA contributions to date (lifetime)
+                      </span>
+                      <input
+                        id="tfsa-to-date"
+                        className={inputClasses}
+                        value={tfsaContribToDate}
+                        onChange={handlers.number("tfsaContribToDate")}
+                        type="number"
+                        min={0}
+                      />
+                      {errors.tfsaContribToDate && (
+                        <p className="text-[11px] text-[#ffb3b3]">
+                          {errors.tfsaContribToDate}
+                        </p>
+                      )}
+                    </label>
+                    <label
+                      className="flex flex-col gap-1"
+                      htmlFor="existing-tfsa"
+                    >
+                      <span className={labelTextClasses}>
+                        Existing TFSA balance
+                      </span>
+                      <input
+                        id="existing-tfsa"
+                        className={inputClasses}
+                        value={initialTfsaBalance}
+                        onChange={handlers.number("initialTfsaBalance")}
+                        type="number"
+                        min={0}
+                      />
+                      {errors.initialTfsaBalance && (
+                        <p className="text-[11px] text-[#ffb3b3]">
+                          {errors.initialTfsaBalance}
+                        </p>
+                      )}
+                    </label>
+                    <label
+                      className="flex flex-col gap-1"
+                      htmlFor="tfsa-monthly"
+                    >
+                      <span className={labelTextClasses}>
+                        TFSA contribution (per month)
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="tfsa-monthly"
+                          className={`${inputClasses} flex-1`}
+                          value={tfsaMonthly}
+                          onChange={handlers.number("tfsaMonthly")}
+                          type="number"
+                          min={0}
+                        />
+                        <span className="text-xs text-[#bedcbe]">R / month</span>
+                      </div>
+                      {errors.tfsaMonthly && (
+                        <p className="text-[11px] text-[#ffb3b3]">
+                          {errors.tfsaMonthly}
+                        </p>
+                      )}
+                      <p className="text-[11px] text-[#bedcbe]">
+                        Max R3,000 per month (R36,000 p.a.)
+                      </p>
+                    </label>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-[#9ad0b0]">
+                    Enable TFSA to add balances and monthly contributions.
                   </p>
                 )}
-              </label>
-              <label
-                className="flex flex-col gap-1"
-                htmlFor="existing-tfsa"
-              >
-                <span className={labelTextClasses}>
-                  Existing TFSA balance
-                </span>
-                <input
-                  id="existing-tfsa"
-                  className={inputClasses}
-                  value={initialTfsaBalance}
-                  onChange={handlers.number("initialTfsaBalance")}
-                  type="number"
-                  min={0}
-                />
-                {errors.initialTfsaBalance && (
-                  <p className="text-[11px] text-[#ffb3b3]">
-                    {errors.initialTfsaBalance}
-                  </p>
-                )}
-              </label>
+              </div>
 
               <p className="col-span-2 mt-2 text-sm font-semibold uppercase tracking-wide text-[#9ad0b0]">
                 Income target &amp; returns
@@ -1451,11 +1533,11 @@ const RetirementCalculator = () => {
             </div>
 
             <h2
-              className={`${sectionTitleClasses} mt-4`}
-            >
-              Contribution split &amp; TFSA
-            </h2>
-            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+            className={`${sectionTitleClasses} mt-4`}
+          >
+            Contribution split &amp; TFSA
+          </h2>
+          <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <label
                 className="flex flex-col gap-1"
                 htmlFor="gross-income"
@@ -1479,32 +1561,6 @@ const RetirementCalculator = () => {
                 {errors.grossIncome && (
                   <p className="text-[11px] text-[#ffb3b3]">
                     {errors.grossIncome}
-                  </p>
-                )}
-              </label>
-              <label
-                className="flex flex-col gap-1"
-                htmlFor="tfsa-monthly"
-              >
-                <span className={labelTextClasses}>
-                  TFSA contribution (per month)
-                </span>
-                <div className="flex items-center gap-2">
-                  <input
-                    id="tfsa-monthly"
-                    className={`${inputClasses} flex-1`}
-                    value={tfsaMonthly}
-                    onChange={handlers.number("tfsaMonthly")}
-                    type="number"
-                    min={0}
-                  />
-                  <span className="text-xs text-[#bedcbe]">
-                    R / month
-                  </span>
-                </div>
-                {errors.tfsaMonthly && (
-                  <p className="text-[11px] text-[#ffb3b3]">
-                    {errors.tfsaMonthly}
                   </p>
                 )}
               </label>
