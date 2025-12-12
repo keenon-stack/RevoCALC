@@ -287,7 +287,6 @@ const RetirementCalculator = () => {
     taxRealism,
   } = values;
 
-  const [showTfsaDetails, setShowTfsaDetails] = useState(false);
   const [showAdvancedTax, setShowAdvancedTax] = useState(false);
 
   const [exportFormat, setExportFormat] = useState("pdf");
@@ -1126,10 +1125,6 @@ const RetirementCalculator = () => {
     }
   };
 
-  useEffect(() => {
-    setShowTfsaDetails(includeTfsa);
-  }, [includeTfsa]);
-
   return (
     <div className={pageClasses}>
       <div className="mx-auto max-w-6xl space-y-6">
@@ -1195,7 +1190,7 @@ const RetirementCalculator = () => {
               checked={includeTfsa}
               onChange={handlers.checkbox("includeTfsa")}
             />
-            <span>{includeTfsa ? "Include TFSA balances & contributions" : "No TFSA contributions"}</span>
+            <span>Tax Free Savings Utilisation</span>
           </label>
         </header>
 
@@ -1296,92 +1291,79 @@ const RetirementCalculator = () => {
               <p className="col-span-2 mt-2 text-sm font-semibold uppercase tracking-wide text-[#9ad0b0]">
                 TFSA contributions
               </p>
-              <div className="col-span-2 flex flex-col gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowTfsaDetails((open) => !open)}
-                  aria-expanded={showTfsaDetails}
-                  disabled={!includeTfsa}
-                  className="inline-flex w-full items-center justify-between rounded-full border border-[#bedcbe] bg-[#002820] px-3 py-1 text-sm font-semibold text-[#bedcbe] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <span>TFSA balances &amp; contributions</span>
-                  <span>{includeTfsa && showTfsaDetails ? "▲" : "▼"}</span>
-                </button>
-
+              <div className="col-span-2">
                 {includeTfsa ? (
-                  showTfsaDetails && (
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <label
-                        className="flex flex-col gap-1"
-                        htmlFor="tfsa-to-date"
-                      >
-                        <span className={labelTextClasses}>
-                          TFSA contributions to date (lifetime)
-                        </span>
-                        <input
-                          id="tfsa-to-date"
-                          className={inputClasses}
-                          value={tfsaContribToDate}
-                          onChange={handlers.number("tfsaContribToDate")}
-                          type="number"
-                          min={0}
-                        />
-                        {errors.tfsaContribToDate && (
-                          <p className="text-[11px] text-[#ffb3b3]">
-                            {errors.tfsaContribToDate}
-                          </p>
-                        )}
-                      </label>
-                      <label
-                        className="flex flex-col gap-1"
-                        htmlFor="existing-tfsa"
-                      >
-                        <span className={labelTextClasses}>
-                          Existing TFSA balance
-                        </span>
-                        <input
-                          id="existing-tfsa"
-                          className={inputClasses}
-                          value={initialTfsaBalance}
-                          onChange={handlers.number("initialTfsaBalance")}
-                          type="number"
-                          min={0}
-                        />
-                        {errors.initialTfsaBalance && (
-                          <p className="text-[11px] text-[#ffb3b3]">
-                            {errors.initialTfsaBalance}
-                          </p>
-                        )}
-                      </label>
-                      <label
-                        className="flex flex-col gap-1"
-                        htmlFor="tfsa-monthly"
-                      >
-                        <span className={labelTextClasses}>
-                          TFSA contribution (per month)
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <input
-                            id="tfsa-monthly"
-                            className={`${inputClasses} flex-1`}
-                            value={tfsaMonthly}
-                            onChange={handlers.number("tfsaMonthly")}
-                            type="number"
-                            min={0}
-                          />
-                          <span className="text-xs text-[#bedcbe]">R / month</span>
-                        </div>
-                        {errors.tfsaMonthly && (
-                          <p className="text-[11px] text-[#ffb3b3]">
-                            {errors.tfsaMonthly}
-                          </p>
-                        )}
-                        <p className="text-[11px] text-[#bedcbe]">
-                          Max R3,000 per month (R36,000 p.a.)
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label
+                      className="flex flex-col gap-1"
+                      htmlFor="tfsa-to-date"
+                    >
+                      <span className={labelTextClasses}>
+                        TFSA contributions to date (lifetime)
+                      </span>
+                      <input
+                        id="tfsa-to-date"
+                        className={inputClasses}
+                        value={tfsaContribToDate}
+                        onChange={handlers.number("tfsaContribToDate")}
+                        type="number"
+                        min={0}
+                      />
+                      {errors.tfsaContribToDate && (
+                        <p className="text-[11px] text-[#ffb3b3]">
+                          {errors.tfsaContribToDate}
                         </p>
-                      </label>
-                    </div>
-                  )
+                      )}
+                    </label>
+                    <label
+                      className="flex flex-col gap-1"
+                      htmlFor="existing-tfsa"
+                    >
+                      <span className={labelTextClasses}>
+                        Existing TFSA balance
+                      </span>
+                      <input
+                        id="existing-tfsa"
+                        className={inputClasses}
+                        value={initialTfsaBalance}
+                        onChange={handlers.number("initialTfsaBalance")}
+                        type="number"
+                        min={0}
+                      />
+                      {errors.initialTfsaBalance && (
+                        <p className="text-[11px] text-[#ffb3b3]">
+                          {errors.initialTfsaBalance}
+                        </p>
+                      )}
+                    </label>
+                    <label
+                      className="flex flex-col gap-1"
+                      htmlFor="tfsa-monthly"
+                    >
+                      <span className={labelTextClasses}>
+                        TFSA contribution (per month)
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="tfsa-monthly"
+                          className={`${inputClasses} flex-1`}
+                          value={tfsaMonthly}
+                          onChange={handlers.number("tfsaMonthly")}
+                          type="number"
+                          min={0}
+                        />
+                        <span className="text-xs text-[#bedcbe]">R / month</span>
+                      </div>
+                      {errors.tfsaMonthly && (
+                        <p className="text-[11px] text-[#ffb3b3]">
+                          {errors.tfsaMonthly}
+                        </p>
+                      )}
+                      <p className="text-[11px] text-[#bedcbe]">
+                        Max R3,000 per month (R36,000 p.a.)
+                      </p>
+                    </label>
+                  </div>
                 ) : (
                   <p className="text-[11px] text-[#9ad0b0]">
                     Enable TFSA to add balances and monthly contributions.
