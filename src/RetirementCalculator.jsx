@@ -1445,6 +1445,16 @@ const RetirementCalculator = () => {
                     % p.a.
                   </span>
                 </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={25}
+                  step={0.1}
+                  value={preReturn}
+                  onChange={handlers.number("preReturn")}
+                  className="mt-1 w-full accent-[#9ad0b0]"
+                  aria-label="Pre-retirement return slider"
+                />
                 {errors.preReturn && (
                   <p className="text-[11px] text-[#ffb3b3]">
                     {errors.preReturn}
@@ -1472,6 +1482,16 @@ const RetirementCalculator = () => {
                     % p.a.
                   </span>
                 </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={25}
+                  step={0.1}
+                  value={postReturn}
+                  onChange={handlers.number("postReturn")}
+                  className="mt-1 w-full accent-[#9ad0b0]"
+                  aria-label="Post-retirement return slider"
+                />
                 {errors.postReturn && (
                   <p className="text-[11px] text-[#ffb3b3]">
                     {errors.postReturn}
@@ -1497,6 +1517,16 @@ const RetirementCalculator = () => {
                     % p.a.
                   </span>
                 </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={15}
+                  step={0.1}
+                  value={inflation}
+                  onChange={handlers.number("inflation")}
+                  className="mt-1 w-full accent-[#9ad0b0]"
+                  aria-label="Inflation slider"
+                />
                 {errors.inflation && (
                   <p className="text-[11px] text-[#ffb3b3]">
                     {errors.inflation}
@@ -1524,6 +1554,16 @@ const RetirementCalculator = () => {
                     % p.a.
                   </span>
                 </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={20}
+                  step={0.1}
+                  value={annualIncrease}
+                  onChange={handlers.number("annualIncrease")}
+                  className="mt-1 w-full accent-[#9ad0b0]"
+                  aria-label="Annual contribution increase slider"
+                />
                 {errors.annualIncrease && (
                   <p className="text-[11px] text-[#ffb3b3]">
                     {errors.annualIncrease}
@@ -1603,6 +1643,16 @@ const RetirementCalculator = () => {
                       % p.a.
                     </span>
                   </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={20}
+                    step={0.1}
+                    value={incomeGrowthRate}
+                    onChange={handlers.number("incomeGrowthRate")}
+                    className="mt-1 w-full accent-[#9ad0b0]"
+                    aria-label="Stipulated income growth slider"
+                  />
                   {errors.incomeGrowthRate && (
                     <p className="text-[11px] text-[#ffb3b3]">
                       {errors.incomeGrowthRate}
@@ -1667,6 +1717,16 @@ const RetirementCalculator = () => {
                         %
                       </span>
                     </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={60}
+                      step={0.1}
+                      value={flatTaxRate}
+                      onChange={handlers.number("flatTaxRate")}
+                      className="mt-1 w-full accent-[#9ad0b0]"
+                      aria-label="Flat tax rate slider"
+                    />
                     {errors.flatTaxRate && (
                       <p className="text-[11px] text-[#ffb3b3]">
                         {errors.flatTaxRate}
