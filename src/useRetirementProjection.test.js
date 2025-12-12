@@ -117,6 +117,36 @@ describe("useRetirementProjection domain calculations", () => {
     expect(result.current.year1Tax).toBeCloseTo(tax, 2);
   });
 
+  it("keeps salary flat and RA deduction limits constant when income growth is NONE", () => {
+    const params = {
+      ...baseParams,
+      currentAge: 30,
+      retireAge: 32,
+      lifeExpectancy: 40,
+      grossIncome: 600_000,
+      incomeGrowthMode: "NONE",
+      incomeGrowthRate: 5,
+      inflation: 6,
+      preReturn: 0,
+      postReturn: 0,
+      annualIncrease: 0,
+      targetNetToday: 20_000,
+      reinvestRaTaxSaving: true,
+      taxRealism: false,
+    };
+
+    const { result } = renderHook(() => useRetirementProjection(params));
+
+    const preTimeline = result.current.preTimeline || [];
+    expect(preTimeline).toHaveLength(2);
+
+    const [year0, year1] = preTimeline;
+
+    expect(year0.raContribution).toBeGreaterThan(0);
+    expect(year1.raContribution).toBeCloseTo(year0.raContribution, 6);
+    expect(year1.raTaxSaving).toBeCloseTo(year0.raTaxSaving, 6);
+  });
+
   it("caps TFSA contributions and rolls overflow into RA contributions", () => {
     const params = {
       ...baseParams,

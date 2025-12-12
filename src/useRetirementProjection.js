@@ -150,7 +150,11 @@ function accumulateToRetirement(inputs) {
   let tfsaContribTotal = tfsaContribToDate;
 
   const salaryGrowthRate =
-    incomeGrowthMode === "INFLATION" ? inflation : incomeGrowthRate;
+    incomeGrowthMode === "INFLATION"
+      ? inflation
+      : incomeGrowthMode === "CUSTOM"
+        ? incomeGrowthRate
+        : 0;
 
   const timeline = [];
 
