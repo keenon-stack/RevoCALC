@@ -9,12 +9,12 @@ export const palette = {
 
 export const fonts = {
   body:
-    '"ES_Klarheit_Grotesk",-apple-system,BlinkMacSystemFont,"Segoe_UI",system-ui,sans-serif',
+    '"ES_Klarheit_Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif',
 };
 
 export const uiClasses = {
   page:
-    "min-h-screen bg-[#bedcbe] p-4 text-[#003c32] font-[\"ES_Klarheit_Grotesk\",-apple-system,BlinkMacSystemFont,\"Segoe_UI\",system-ui,sans-serif] sm:p-6",
+    "min-h-screen bg-[#bedcbe] p-4 text-[#003c32] font-[\"ES_Klarheit_Grotesk\",-apple-system,BlinkMacSystemFont,\"Segoe UI\",system-ui,sans-serif] sm:p-6",
   card: "space-y-3 rounded-2xl bg-[#003c32] p-4 text-white shadow-md",
   input:
     "bg-[#003c32] border border-white text-white rounded-xl px-3 py-2 outline-none font-bold focus:ring-2 focus:ring-[#9ad0b0]",
